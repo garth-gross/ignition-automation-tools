@@ -18,6 +18,7 @@ from Components.PerspectiveComponents.Common.TablePieces.Body import Body
 from Components.PerspectiveComponents.Common.TablePieces.Filter import Filter
 from Components.PerspectiveComponents.Common.TablePieces.HeaderAndFooter import Header
 from Components.PerspectiveComponents.Common.TablePieces.Pager import Pager
+from Helpers import CSSEnumerations
 from Helpers.IAAssert import IAAssert
 from Helpers.IAExpectedConditions import IAExpectedConditions as IAec
 from Helpers.IASelenium import IASelenium
@@ -125,18 +126,19 @@ class _AlarmTable(Table, BasicPerspectiveComponent):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: List[Tuple[By, str]],
-            wait_timeout: float = 10,
+            parent_locator_list: List[Tuple[Union[By, str], str]],
+            timeout: float = 10,
             description: Optional[str] = None,
-            poll_freq: float = 0.5):
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):  # use in last __init__
         Table.__init__(
             self,
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
             poll_freq=poll_freq)
         BasicPerspectiveComponent.__init__(
@@ -144,9 +146,9 @@ class _AlarmTable(Table, BasicPerspectiveComponent):
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
-            poll_freq=poll_freq
-        )
+            timeout=timeout,
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)  # apply here, otherwise False is used)
         self._alarm_table_toolbar = _AlarmTableToolbar(
             driver=self.driver,
             parent_locator_list=self.locator_list,
@@ -178,11 +180,11 @@ class _AlarmTable(Table, BasicPerspectiveComponent):
 
         :raises TimeoutException: If the text filter is not present.
         """
-        self._alarm_table_filter.set_filter_text(text=filter_string, binding_wait_time=wait_for_filtered_results)
+        self._alarm_table_filter.set_filter_text(text=filter_string, wait_after=wait_for_filtered_results)
 
     def apply_prefilters(
             self,
-            prefilter_list: List[Union[AlarmState, AlarmPriority]],
+            prefilter_list: List[Union[AlarmState, AlarmPriority, str]],
             close_modal_after: bool = True) -> None:
         """
         Expand the popover/modal which contains the Alarm States and Priorities, and then apply the supplied
@@ -201,7 +203,7 @@ class _AlarmTable(Table, BasicPerspectiveComponent):
             prefilter_list=prefilter_list)
         if close_modal_after:
             self.close_any_open_popover_or_modal()
-        self._alarm_table_toolbar.wait_on_binding(time_to_wait=1)
+        self._alarm_table_toolbar.wait_some_time(time_to_wait=1)
 
     def apply_show_all_events_prefilter(self) -> None:
         """
@@ -295,11 +297,11 @@ class _AlarmTable(Table, BasicPerspectiveComponent):
         """
         self.click_column_configuration_icon()
         
-    def click_next_page_chevron(self, binding_wait_time: float = 0) -> None:
+    def click_next_page_chevron(self, wait_after_click: float = 0) -> None:
         """
         Within the Pager, click the '>' option in order to go to the next page.
 
-        :param binding_wait_time: How long to wait (in seconds) after clicking the '>' option before allowing code to
+        :param wait_after_click: How long to wait (in seconds) after clicking the '>' option before allowing code to
             continue.
 
         :raises TimeoutException: If the '>' option is not present.
@@ -307,7 +309,7 @@ class _AlarmTable(Table, BasicPerspectiveComponent):
         """
         original_page_number = self.get_active_page()
         self._pager.find().click()
-        self._pager.click_next_page_chevron(binding_wait_time=binding_wait_time)
+        self._pager.click_next_page_chevron(wait_after_click=wait_after_click)
         IAAssert.is_equal_to(
             actual_value=self.get_active_page(),
             expected_value=original_page_number + 1,
@@ -329,18 +331,18 @@ class _AlarmTable(Table, BasicPerspectiveComponent):
             failure_msg=f"Failed to set the Alarm Table to display page {page_number} by clicking that page number "
                         f"within the Pager.")
         
-    def click_previous_page_chevron(self, binding_wait_time: float = 0) -> None:
+    def click_previous_page_chevron(self, wait_after_click: float = 0) -> None:
         """
         Within the Pager, click the '<' option in order to go to the previous page.
 
-        :param binding_wait_time: How long to wait (in seconds) after clicking the '<' option before allowing code to
+        :param wait_after_click: How long to wait (in seconds) after clicking the '<' option before allowing code to
             continue.
 
         :raises TimeoutException: If the '<' option is not present.
         :raises AssertionError: If unsuccessful in advancing the Alarm Table to the previous page.
         """
         original_page_number = self.get_active_page()
-        self._pager.click_previous_page_chevron(binding_wait_time=binding_wait_time)
+        self._pager.click_previous_page_chevron(wait_after_click=wait_after_click)
         IAAssert.is_equal_to(
             actual_value=self.get_active_page(),
             expected_value=original_page_number - 1,
@@ -454,7 +456,7 @@ class _AlarmTable(Table, BasicPerspectiveComponent):
         """
         return self._alarm_table_body.details_modal_is_open()
 
-    def dismiss_prefilter_pill(self, prefilter: Union[AlarmState, AlarmPriority]) -> None:
+    def dismiss_prefilter_pill(self, prefilter: Union[AlarmState, AlarmPriority, str]) -> None:
         """
         Remove an applied Prefilter from being used as a condition for an Alarm to be displayed.
 
@@ -756,18 +758,18 @@ class _AlarmTable(Table, BasicPerspectiveComponent):
         """
         return self._alarm_table_toolbar.get_text_of_filter_results()
     
-    def jump_to_page(self, page_number: int, binding_wait_time: float = 1) -> None:
+    def jump_to_page(self, page_number: int, wait_after_click: float = 1) -> None:
         """
         Use the page jump input field to go to a specific page in the Table.
 
         :param page_number: The page of the Table to go to.
-        :param binding_wait_time: The amount of time (in seconds) to wait after supplying the page number before
+        :param wait_after_click: The amount of time (in seconds) to wait after supplying the page number before
             allowing code to continue.
 
         :raises TimeoutException: If the page jump input is not present.
         :raises AssertionError: If the Table does not end up on the supplied page.
         """
-        self._pager.jump_to_page(page_to_jump_to=page_number, binding_wait_time=binding_wait_time)
+        self._pager.jump_to_page(page_to_jump_to=page_number, wait_after=wait_after_click)
 
     def results_label_is_displayed(self) -> bool:
         """
@@ -844,7 +846,7 @@ class _AlarmTable(Table, BasicPerspectiveComponent):
         """
         return self._pager.is_present()
 
-    def prefilter_is_applied(self, prefilter: Union[AlarmState, AlarmPriority]) -> bool:
+    def prefilter_is_applied(self, prefilter: Union[AlarmState, AlarmPriority, str]) -> bool:
         """
         Determine if a Prefilter is currently applied as a conditional prefilter.
 
@@ -927,17 +929,22 @@ class _AlarmTable(Table, BasicPerspectiveComponent):
         return self._alarm_table_toolbar.is_displayed()
 
     def wait_for_row_count(
-            self, expected_count: Optional[int] = None):
+            self,
+            expected_count: Optional[int] = None,
+            timeout: float = 0,
+            **kwargs):
         """
         Obtain a count of rows in the Alarm Table.
 
         :param expected_count: If supplied, the function will wait some short period of time until this number of rows
             appears.
+        :param timeout: The amount of time you are willing to wait for the Table to have the expected count of rows. A
+            value of 0 will result in an immediate return.
 
         :returns: A count of rows in the Alarm Table.
         """
         return self._alarm_table_body.wait_for_row_count(
-            include_expanded_subviews_in_count=False, expected_count=expected_count)
+            include_expanded_subviews_in_count=False, expected_count=expected_count, timeout=timeout)
 
 
 class _AlarmTableBody(Body):
@@ -960,14 +967,14 @@ class _AlarmTableBody(Body):
     def __init__(
             self,
             driver: WebDriver,
-            parent_locator_list: List[Tuple[By, str]],
-            wait_timeout: float = 10,
+            parent_locator_list: List[Tuple[Union[By, str], str]],
+            timeout: float = 10,
             description: Optional[str] = None,
             poll_freq: float = 0.5):
         super().__init__(
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
             poll_freq=poll_freq)
         # OVERWRITE inherited piece
@@ -1077,7 +1084,7 @@ class _AlarmTableBody(Body):
         :returns: True, if the Details popover/modal is currently open - False otherwise.
         """
         try:
-            return self._details_modal.find(wait_timeout=0.5) is not None
+            return self._details_modal.find(timeout=0.5) is not None
         except TimeoutException:
             return False
 
@@ -1187,8 +1194,8 @@ class _AlarmTableBody(Body):
 
         :raises TimeoutException: If the Details popover/modal is not already open.
         """
-        self._notes_tab_in_details_modal.click(wait_timeout=1)
-        return self._notes_field.find(wait_timeout=1).text
+        self._notes_tab_in_details_modal.click(timeout=1)
+        return self._notes_field.find(timeout=1).text
 
     def get_selection_state_for_rows(self, known_value: str, column_for_value: AlarmTableColumn) -> List[bool]:
         """
@@ -1253,7 +1260,7 @@ class _AlarmTableBody(Body):
         """
         try:
             self._get_complex_cell(cell_text=text_in_column, column=column).hover()
-            self._details_hover_piece.click(wait_timeout=5, binding_wait_time=1)
+            self._details_hover_piece.click(timeout=5, wait_after_click=1)
             self.wait.until(IAec.function_returns_true(
                 custom_function=self.details_modal_is_open,
                 function_args={}))
@@ -1395,7 +1402,7 @@ class _AlarmTableBody(Body):
                 locator=(By.CSS_SELECTOR, f'>div'),
                 driver=self.driver,
                 parent_locator_list=_row.locator_list,
-                wait_timeout=0,
+                timeout=0,
                 poll_freq=self.poll_freq).find_all()
             for cell in cells:
                 row_data[cell.get_attribute("data-column-id")] = cell.text
@@ -1452,14 +1459,14 @@ class _AlarmTableFilter(Filter):
     def __init__(
             self,
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 1,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 1,
             description: Optional[str] = None,
             poll_freq: float = 0.5):
         super().__init__(
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
             poll_freq=poll_freq)
         self._filter_icon = ComponentPiece(
@@ -1476,7 +1483,7 @@ class _AlarmTableFilter(Filter):
             locator=self._COLLAPSE_ICON_LOCATOR,
             driver=driver,
             parent_locator_list=self._container.locator_list,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=poll_freq)
 
     def collapse_text_filter(self) -> None:
@@ -1487,7 +1494,7 @@ class _AlarmTableFilter(Filter):
         """
         if self.filter_is_expanded():
             try:
-                self._collapse_icon.click(binding_wait_time=1)
+                self._collapse_icon.click(wait_after_click=1)
             except ElementNotInteractableException:
                 pass
             except TimeoutException:
@@ -1505,7 +1512,7 @@ class _AlarmTableFilter(Filter):
         """
         if not self.filter_is_expanded():
             try:
-                self._filter_icon.click(wait_timeout=1)
+                self._filter_icon.click(timeout=1)
                 self.filter_is_expanded()  # glorified wait for the animation of the filter expansion
             except ElementNotInteractableException as enie:
                 # This error is sometimes thrown even though the click registers.
@@ -1536,7 +1543,7 @@ class _AlarmTableFilter(Filter):
                 IAec.function_returns_true(custom_function=self._filter_is_expanded, function_args={}))
             if expanded:
                 # wait for any animation to complete
-                self.wait_on_binding(time_to_wait=self.wait_timeout)
+                self.wait_some_time(time_to_wait=self.timeout)
             return expanded
         except TimeoutException:
             return False
@@ -1547,21 +1554,21 @@ class _AlarmTableFilter(Filter):
 
         :returns: True, if the text filter is expanded - False otherwise.
         """
-        return "isExpanded" in self._container.find(wait_timeout=0.5).get_attribute("class")
+        return "isExpanded" in self._container.find(timeout=0.5).get_attribute("class")
 
-    def set_filter_text(self, text: str, binding_wait_time: float = 2) -> None:
+    def set_filter_text(self, text: str, wait_after: float = 2) -> None:
         """
         Expand the text filter before typing the supplied text into the filter input.
 
         :param text: The text to type into the filter.
-        :param binding_wait_time: How long (in seconds) to wait after typing the supplied text before allowing code to
+        :param wait_after: How long (in seconds) to wait after typing the supplied text before allowing code to
             continue.
 
         :raises AssertionError: If unsuccessful in applying the supplied text to the filter.
         :raises TimeoutException: If the icon to expand the filter is not present.
         """
         self.expand_filter()
-        super().set_filter_text(text=text, binding_wait_time=binding_wait_time)
+        super().set_filter_text(text=text, wait_after=wait_after)
 
     def text_filtering_is_enabled(self) -> bool:
         """
@@ -1571,7 +1578,7 @@ class _AlarmTableFilter(Filter):
             otherwise.
         """
         try:
-            return self._filter_icon.find(wait_timeout=1) is not None
+            return self._filter_icon.find(timeout=1) is not None
         except TimeoutException:
             return False
 
@@ -1596,7 +1603,7 @@ class _AlarmTableMenuItem(ComponentPiece):
             locator=(By.CSS_SELECTOR, f'{self._MENU_ITEM_LOCATOR[1]}[data-label="{text}"]'),
             driver=driver,
             parent_locator_list=ComponentModal(driver=driver).locator_list,
-            wait_timeout=1,
+            timeout=1,
             description=description)
 
 
@@ -1625,15 +1632,15 @@ class _AlarmTableToolbar(ComponentPiece):
     def __init__(
             self,
             driver: WebDriver,
-            parent_locator_list: List[Tuple[By, str]],
-            wait_timeout: float = 5,
+            parent_locator_list: List[Tuple[Union[By, str], str]],
+            timeout: float = 5,
             description: Optional[str] = None,
             poll_freq: float = 0.5):
         super().__init__(
             locator=(By.CSS_SELECTOR, "div.alarmTableToolbar"),
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
             poll_freq=poll_freq)
         # Non-component locator lists
@@ -1676,7 +1683,7 @@ class _AlarmTableToolbar(ComponentPiece):
             locator=self._GEAR_LOCATOR,
             driver=self.driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=poll_freq)
         self._prefilter_pills = ComponentPiece(
             locator=self._PREFILTER_PILLS_LOCATOR,
@@ -1717,7 +1724,7 @@ class _AlarmTableToolbar(ComponentPiece):
         self._already_attempted_to_click_icon = False
 
     def apply_prefilters(
-            self, prefilter_list: List[Union[AlarmState, AlarmPriority, AlarmStatusTableAlarmState]]) -> None:
+            self, prefilter_list: List[Union[AlarmState, AlarmPriority, AlarmStatusTableAlarmState, str]]) -> None:
         """
         Set the conditional display of an alarm to require it have at least one of the supplied States or Priorities.
 
@@ -1728,7 +1735,7 @@ class _AlarmTableToolbar(ComponentPiece):
             application of all prefilters in list results in all states or priorities being applied, as the requested
             state or priority will not be present as a prefilter.
         """
-        prefilter_list_as_strings = [_.value for _ in prefilter_list]
+        prefilter_list_as_strings = [str(_) for _ in prefilter_list]
         try:
             self.wait.until(IAec.function_returns_true(
                 custom_function=self._apply_prefilters,
@@ -1762,7 +1769,7 @@ class _AlarmTableToolbar(ComponentPiece):
                 'prefilter_list_as_strings': ["Show All"]
             }))
         all_applied_states_and_priorities = self.get_text_of_applied_prefilters()
-        for state in [_.value for _ in AlarmState]:
+        for state in [str(_) for _ in AlarmState]:
             IAAssert.does_not_contain(
                 iterable=all_applied_states_and_priorities,
                 expected_value=state,
@@ -1783,7 +1790,7 @@ class _AlarmTableToolbar(ComponentPiece):
 
         :raises TimeoutException: If the 'Remove All' button is not present.
         """
-        self._remove_all_button.click(wait_timeout=2)
+        self._remove_all_button.click(timeout=2)
 
     def column_configuration_icon_is_present(self) -> bool:
         """
@@ -1804,7 +1811,7 @@ class _AlarmTableToolbar(ComponentPiece):
         :returns: True, if the popover/modal is currently displayed - False otherwise.
         """
         try:
-            return self._config_popover_or_modal_header.find(wait_timeout=0.5) is not None
+            return self._config_popover_or_modal_header.find(timeout=0.5) is not None
         except TimeoutException:
             return False
 
@@ -1853,7 +1860,7 @@ class _AlarmTableToolbar(ComponentPiece):
             popover/modal.
         """
         try:
-            self._popover_or_modal_close_icon.click(wait_timeout=2)
+            self._popover_or_modal_close_icon.click(timeout=2)
             self._already_attempted_to_click_icon = False  # on success, make sure we reset our check
         except TimeoutException:
             pass  # nothing to close
@@ -1891,7 +1898,7 @@ class _AlarmTableToolbar(ComponentPiece):
         if self.text_filter_is_expanded():
             self.wait.until(ec.element_to_be_clickable(
                 self._text_filter_close_icon.get_full_css_locator())).click()
-            self.wait_on_binding(time_to_wait=1)
+            self.wait_some_time(time_to_wait=1)
 
     def dismiss_prefilter_pill(
             self, prefilter: Union[AlarmState, AlarmPriority, AlarmStatusTableAlarmState]) -> None:
@@ -1905,13 +1912,13 @@ class _AlarmTableToolbar(ComponentPiece):
         """
         prefilters = self._prefilter_pills.find_all()
         for i in range(len(prefilters)):
-            if prefilter.value.lower() in prefilters[i].text.lower():
+            if str(prefilter).lower() in prefilters[i].text.lower():
                 prefilters[i].find_element(*self._PRE_FILTER_REMOVE_ICON_LOCATOR).click()
                 break
         IAAssert.does_not_contain(
             iterable=[prefilter.text.lower() for prefilter in self._prefilter_pills.find_all()],
-            expected_value=prefilter.value.lower(),
-            failure_msg=f"Failed to remove the {prefilter.value} State as a conditional filter by clicking the "
+            expected_value=str(prefilter).lower(),
+            failure_msg=f"Failed to remove the {prefilter} State as a conditional filter by clicking the "
                         f"associated pill in the Alarm Table.")
 
     def expand_text_filter_if_collapsed(self) -> None:
@@ -1934,7 +1941,7 @@ class _AlarmTableToolbar(ComponentPiece):
             except TimeoutException:
                 # ignore TimeoutException and raise AssertionError instead.
                 pass
-            self.wait_on_binding(time_to_wait=1)
+            self.wait_some_time(time_to_wait=1)
         IAAssert.is_true(
             value=self.text_filter_is_expanded(),
             failure_msg="Failed to expand the text filter of the Alarm Table.")
@@ -1946,7 +1953,7 @@ class _AlarmTableToolbar(ComponentPiece):
         :returns: True, if any conditional or text filtering is currently applied to the Alarm Table.
         """
         try:
-            return self._filtered_results_label.find(wait_timeout=1) is not None
+            return self._filtered_results_label.find(timeout=1) is not None
         except TimeoutException:
             return False
 
@@ -2042,7 +2049,7 @@ class _AlarmTableToolbar(ComponentPiece):
         :returns: True, if the Alarm Table is currently displayed - False otherwise.
         """
         try:
-            return self.find(wait_timeout=0.5).is_displayed()
+            return self.find(timeout=0.5).is_displayed()
         except TimeoutException:
             return False
 
@@ -2053,11 +2060,11 @@ class _AlarmTableToolbar(ComponentPiece):
         :returns: True, if the State/Priority popover/modal is currently displayed - False otherwise.
         """
         try:
-            return self._prefilter_popover_or_modal.find(wait_timeout=0.5).is_displayed()
+            return self._prefilter_popover_or_modal.find(timeout=0.5).is_displayed()
         except TimeoutException:
             return False
 
-    def prefilter_is_applied(self, prefilter: Union[AlarmState, AlarmPriority]) -> bool:
+    def prefilter_is_applied(self, prefilter: Union[AlarmState, AlarmPriority, str]) -> bool:
         """
         Determine if a Prefilter is currently applied as a conditional prefilter.
 
@@ -2066,7 +2073,7 @@ class _AlarmTableToolbar(ComponentPiece):
         :returns: True, if the supplied Prefilter is currently applied as a conditional filter - False otherwise.
         """
         try:
-            return prefilter.value in [_.text for _ in self._prefilter_pills.find_all()]
+            return str(prefilter) in [_.text for _ in self._prefilter_pills.find_all()]
         except StaleElementReferenceException:
             return self.prefilter_is_applied(
                 prefilter=prefilter)
@@ -2170,7 +2177,7 @@ class _AlarmTableToolbar(ComponentPiece):
                         "class")) == should_be_displayed:
                     self._get_menu_item(
                         menu_item_label=column_name).click(
-                        binding_wait_time=0.5)
+                        wait_after_click=0.5)
                     did_click = True
             except TimeoutException:
                 pass  # no checkbox with given name
@@ -2190,7 +2197,7 @@ class _AlarmTableToolbar(ComponentPiece):
         menu_item = self._get_menu_item(menu_item_label=menu_item_label)
         if ("isActive" in menu_item.find().find_element(
                 By.CSS_SELECTOR, "div").get_attribute("class")) != should_be_displayed:
-            menu_item.click(binding_wait_time=0.5)
+            menu_item.click(wait_after_click=0.5)
 
     def _get_menu_item(self, menu_item_label: str) -> _AlarmTableMenuItem:
         """
@@ -2219,7 +2226,7 @@ class _AlarmTableToolbar(ComponentPiece):
                 locator=(By.TAG_NAME, 'svg'),
                 driver=self.driver,
                 parent_locator_list=self._get_menu_item(menu_item_label=menu_item_label).locator_list,
-                wait_timeout=1)
+                timeout=1)
             self._menu_item_checkboxes[menu_item_label] = checkbox
         return checkbox
     
@@ -2260,14 +2267,14 @@ class AlarmJournalTable(_AlarmTable):
         def __init__(
                 self,
                 driver: WebDriver,
-                parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-                wait_timeout: float = 3,
+                parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+                timeout: float = 3,
                 poll_freq: float = 0.5):
             super().__init__(
                 locator=self._FOOTER_CONTAINER_LOCATOR,
                 driver=driver,
                 parent_locator_list=parent_locator_list,
-                wait_timeout=wait_timeout,
+                timeout=timeout,
                 poll_freq=poll_freq)
             self._for_alarm_button = ComponentPiece(
                 locator=self._VIEW_INSTANCES_FOR_ALARM_BUTTON_LOCATOR,
@@ -2311,15 +2318,17 @@ class AlarmJournalTable(_AlarmTable):
             self,
             locator,
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: int = 5,
-            poll_freq: float = 0.5):
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: int = 5,
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
         super().__init__(
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
-            poll_freq=poll_freq)
+            timeout=timeout,
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
         self._date_range_selector = self._AlarmJournalTableDateRangeSelector(
             driver=driver,
             parent_locator_list=self.locator_list,
@@ -2610,19 +2619,21 @@ class AlarmStatusTable(_AlarmTable):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 5,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 5,
             description: Optional[str] = None,
-            poll_freq: float = 0.5):
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
         super().__init__(
             locator,
             driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
-            poll_freq=poll_freq)
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
         self._alarm_table_toolbar = self._AlarmStatusTableToolbar(
             driver=self.driver,
             parent_locator_list=self.locator_list,
@@ -2669,7 +2680,7 @@ class AlarmStatusTable(_AlarmTable):
         # The Shelve time selector is its own modal too
         self._shelve_times = ComponentPiece(locator=self._SHELVE_TIMES_LOCATOR, driver=self.driver, poll_freq=poll_freq)
 
-    def click(self, wait_timeout=None, binding_wait_time: float = 0) -> None:
+    def click(self, timeout=None, wait_after_click: float = 0) -> None:
         """:raises NotImplementedError: Because the Alarm Status Table should not be blindly clicked."""
         raise NotImplementedError("Please do not blindly click the Alarm Status Table.")
 
@@ -2714,7 +2725,7 @@ class AlarmStatusTable(_AlarmTable):
             prefilter_list=prefilter_list)
         if close_modal_after:
             self.close_any_open_popover_or_modal()
-        self._alarm_table_toolbar.wait_on_binding(time_to_wait=1)
+        self._alarm_table_toolbar.wait_some_time(time_to_wait=1)
 
     def click_shelve_button(self) -> None:
         """
@@ -3051,7 +3062,7 @@ class AlarmStatusTable(_AlarmTable):
             acknowledgement is displayed -False otherwise.
         """
         try:
-            return self._notes_modal.find(wait_timeout=3).is_displayed()
+            return self._notes_modal.find(timeout=3).is_displayed()
         except TimeoutException:
             return False
 
@@ -3116,13 +3127,13 @@ class AlarmStatusTable(_AlarmTable):
         def __init__(
                 self,
                 driver: WebDriver,
-                parent_locator_list: List[Tuple[By, str]],
-                wait_timeout: float = 5,
+                parent_locator_list: List[Tuple[Union[By, str], str]],
+                timeout: float = 5,
                 poll_freq: float = 0.5):
             super().__init__(
                 driver=driver,
                 parent_locator_list=parent_locator_list,
-                wait_timeout=wait_timeout,
+                timeout=timeout,
                 poll_freq=poll_freq)
             # Non-component locator lists
             self.active_tab = ComponentPiece(
@@ -3151,7 +3162,7 @@ class AlarmStatusTable(_AlarmTable):
             :raises AssertionError: If unsuccessful in getting to the ACTIVE tab of the Alarm Status Table.
             """
             self.tabs.find_all()[0].click()
-            self.tabs.wait_on_binding(time_to_wait=0.5)
+            self.tabs.wait_some_time(time_to_wait=0.5)
             try:
                 self.wait.until(IAec.function_returns_true(
                     custom_function=self._tab_is_active,
@@ -3173,7 +3184,7 @@ class AlarmStatusTable(_AlarmTable):
             :raises AssertionError: If unsuccessful in getting to the ACTIVE tab of the Alarm Status Table.
             """
             self.tabs.find_all()[1].click()
-            self.tabs.wait_on_binding(time_to_wait=transition_wait_time)
+            self.tabs.wait_some_time(time_to_wait=transition_wait_time)
             try:
                 self.wait.until(IAec.function_returns_true(
                     custom_function=self._tab_is_active,
@@ -3270,14 +3281,14 @@ class AlarmStatusTable(_AlarmTable):
         def __init__(
                 self,
                 driver: WebDriver,
-                parent_locator_list: List[Tuple[By, str]],
-                wait_timeout: float = 5,
+                parent_locator_list: List[Tuple[Union[By, str], str]],
+                timeout: float = 5,
                 poll_freq: float = 0.5):
             super().__init__(
                 locator=(By.CSS_SELECTOR, "div.alarmTableFoot"),
                 driver=driver,
                 parent_locator_list=parent_locator_list,
-                wait_timeout=wait_timeout,
+                timeout=timeout,
                 poll_freq=poll_freq)
             # Non-component locator lists
             self.acknowledge_button = ComponentPiece(
@@ -3406,7 +3417,7 @@ class AlarmStatusTable(_AlarmTable):
 
             :raises TimeoutException: If the 'Unshelve' button is not present.
             """
-            self.wait_on_binding(time_to_wait=1)  # wait on the animation of the button
+            self.wait_some_time(time_to_wait=1)  # wait on the animation of the button
             self.wait.until(IAec.function_returns_true(
                 custom_function=self._click_unshelve_button_and_report_success_of_click,
                 function_args={}
@@ -3448,7 +3459,7 @@ class AlarmStatusTable(_AlarmTable):
                 discrepancy, or if the confirmation message has not yet appeared.
             """
             try:
-                return self.shelve_confirmation_message.find(wait_timeout=0).text == str(expected_shelve_message)
+                return self.shelve_confirmation_message.find(timeout=0).text == str(expected_shelve_message)
             except TimeoutException:
                 return False
 
@@ -3472,7 +3483,7 @@ class AlarmStatusTable(_AlarmTable):
             :returns: True, if the click was successful - False otherwise.
             """
             try:
-                self.shelve_button.find(wait_timeout=0.5).click()
+                self.shelve_button.find(timeout=0.5).click()
                 return True
             except ElementNotInteractableException:
                 return False
@@ -3484,7 +3495,7 @@ class AlarmStatusTable(_AlarmTable):
             :returns: True, if the click was successful - False otherwise.
             """
             try:
-                self.unshelve_button.find(wait_timeout=0.5).click()
+                self.unshelve_button.find(timeout=0.5).click()
                 return True
             except ElementNotInteractableException:
                 return False
@@ -3515,13 +3526,13 @@ class AlarmStatusTable(_AlarmTable):
         def __init__(
                 self,
                 driver: WebDriver,
-                parent_locator_list: List[Tuple[By, str]],
-                wait_timeout: int = 5,
+                parent_locator_list: List[Tuple[Union[By, str], str]],
+                timeout: int = 5,
                 poll_freq: float = 0.5):
             super().__init__(
                 driver=driver,
                 parent_locator_list=parent_locator_list,
-                wait_timeout=wait_timeout,
+                timeout=timeout,
                 poll_freq=poll_freq)
             self._table_cells = ComponentPiece(
                 locator=(By.CSS_SELECTOR, 'div.tc.ia_table__cell'),
@@ -3598,7 +3609,7 @@ class AlarmStatusTable(_AlarmTable):
                         if (self._CHECKBOX_CHECKED in checkbox_svg_element.get_attribute('class')) \
                                 != should_be_selected:
                             # Click the row instead of the checkbox because of the dock handler
-                            IASelenium(self.driver).scroll_to_element(row, align_to_top=False).click()
+                            IASelenium(self.driver).scroll_to_element(row, block=CSSEnumerations.CSS.Block.END).click()
                             did_click = True
                 return not did_click
             except StaleElementReferenceException:
@@ -3631,7 +3642,7 @@ class AlarmStatusTable(_AlarmTable):
             :returns: A count which represents the number of currently selected rows in the Alarm Status Table.
             """
             try:
-                return len(self._selected_rows.find_all(wait_timeout=0.5))
+                return len(self._selected_rows.find_all(timeout=0.5))
             except TimeoutException:
                 return 0
 
@@ -3656,11 +3667,11 @@ class AlarmStatusTable(_AlarmTable):
             local_desired_cells_object = self._get_cell_object_by_column_object(desired_column)
             values = []
             try:
-                known_cell_elements = local_known_cells_object.find_all(wait_timeout=3)
+                known_cell_elements = local_known_cells_object.find_all(timeout=3)
             except TimeoutException:
                 known_cell_elements = []
             try:
-                desired_cell_elements = local_desired_cells_object.find_all(wait_timeout=3)
+                desired_cell_elements = local_desired_cells_object.find_all(timeout=3)
             except TimeoutException:
                 desired_cell_elements = []
             for index in range(len(known_cell_elements)):
@@ -3683,17 +3694,21 @@ class AlarmStatusTable(_AlarmTable):
         """
         _SELECT_ALL_CHECKBOX_LOCATOR = (By.CSS_SELECTOR, 'div.thc[data-column-id="select"]')
 
-        def __init__(self, driver: WebDriver, parent_locator_list: List[Tuple[By, str]], poll_freq: float = 0.5):
+        def __init__(
+                self,
+                driver: WebDriver,
+                parent_locator_list: List[Tuple[Union[By, str], str]],
+                poll_freq: float = 0.5):
             super().__init__(
                 driver=driver,
                 parent_locator_list=parent_locator_list,
-                wait_timeout=1,
+                timeout=1,
                 poll_freq=poll_freq)
             self._select_all_checkbox = CommonCheckbox(
                 locator=self._SELECT_ALL_CHECKBOX_LOCATOR,
                 driver=driver,
                 parent_locator_list=self.locator_list,
-                wait_timeout=1,
+                timeout=1,
                 poll_freq=poll_freq)
 
         def get_select_all_checkbox_state(self) -> Optional[bool]:
@@ -3729,8 +3744,8 @@ class AlarmStatusTable(_AlarmTable):
             :raises TimeoutException: If the checkbox which drives the selection of all rows is not present.
             :raises AssertionError: If unsuccessful in setting the state of the "select-all" checkbox.
             """
-            self._select_all_checkbox.scroll_to_element(align_to_top=True)
-            self._select_all_checkbox.set_state(should_be_selected=should_be_selected, binding_wait_time=0.5)
+            self._select_all_checkbox.scroll_to_element()
+            self._select_all_checkbox.set_state(should_be_selected=should_be_selected, wait_after_click=0.5)
             IAAssert.is_equal_to(
                 actual_value=self.get_select_all_checkbox_state(),
                 expected_value=should_be_selected,

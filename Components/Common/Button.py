@@ -5,7 +5,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
 
 from Components.BasicComponent import ComponentPiece
-from Components.PerspectiveComponents.Common.Icon import CommonIcon
+from Components.Common.Icon import CommonIcon
 from Helpers.CSSEnumerations import CSSPropertyValue
 from Helpers.Point import Point
 
@@ -24,17 +24,17 @@ class CommonButton(ComponentPiece):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 10,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 10,
             description: Optional[str] = None,
             poll_freq: float = 0.5):
         super().__init__(
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
             poll_freq=poll_freq)
         self._internal_button = ComponentPiece(
@@ -47,33 +47,33 @@ class CommonButton(ComponentPiece):
             locator=self._INTERNAL_ICON_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=1,
+            timeout=1,
             description="The icon in use by the Button.",
             poll_freq=poll_freq)
         self._internal_text = ComponentPiece(
             locator=self._INTERNAL_TEXT_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=1,
+            timeout=1,
             description="The container in which the text of the Button resides.",
             poll_freq=poll_freq)
         self._internal_image = ComponentPiece(
             locator=self._INTERNAL_IMAGE_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=1,
+            timeout=1,
             description="The image within the Button.",
             poll_freq=poll_freq)
 
-    def click(self, wait_timeout=None, binding_wait_time: float = 0.5) -> None:
+    def click(self, timeout=None, wait_after_click: float = 0.5) -> None:
         """
         Click the button.
         """
         _button = self._get_html_button()
         if _button == self:
-            super().click(wait_timeout=wait_timeout, binding_wait_time=binding_wait_time)
+            super().click(timeout=timeout, wait_after_click=wait_after_click)
         else:
-            _button.click(wait_timeout=wait_timeout, binding_wait_time=binding_wait_time)
+            _button.click(timeout=timeout, wait_after_click=wait_after_click)
 
     def get_css_property_of_icon(self, property_name: Union[CSSPropertyValue, str]) -> str:
         """

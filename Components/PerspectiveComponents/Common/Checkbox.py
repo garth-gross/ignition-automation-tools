@@ -1,11 +1,11 @@
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List, Union
 
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
 
 from Components.BasicComponent import ComponentPiece
-from Components.PerspectiveComponents.Common.Icon import CommonIcon
+from Components.Common.Icon import CommonIcon
 from Helpers.IAAssert import IAAssert
 from Helpers.IAExpectedConditions import IAExpectedConditions as IAec
 
@@ -30,17 +30,17 @@ class CommonCheckbox(ComponentPiece):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 3,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 3,
             description: Optional[str] = None,
             poll_freq: float = 0.5):
         super().__init__(
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
             poll_freq=poll_freq)
         self._click_target = ComponentPiece(
@@ -67,17 +67,17 @@ class CommonCheckbox(ComponentPiece):
             parent_locator_list=self.locator_list,
             poll_freq=poll_freq)
 
-    def click(self, wait_timeout: Optional[float] = None, binding_wait_time: float = 0) -> None:
+    def click(self, timeout: Optional[float] = None, wait_after_click: float = 0) -> None:
         """
         Click the Checkbox.
 
         If attempting to set the checkbox to a known state, :func:`set_state` is preferred.
 
-        :param wait_timeout: The amount of time you are willing to wait for the checkbox to appear before attempting
+        :param timeout: The amount of time you are willing to wait for the checkbox to appear before attempting
             to perform the click. Overrides the component's original wait.
-        :param binding_wait_time: The amount of time after the click occurs before allowing code to continue.
+        :param wait_after_click: The amount of time after the click occurs before allowing code to continue.
         """
-        self._click_target.click(wait_timeout=wait_timeout, binding_wait_time=binding_wait_time)
+        self._click_target.click(timeout=timeout, wait_after_click=wait_after_click)
 
     def get_direction_of_label_text(self) -> str:
         """
@@ -116,14 +116,14 @@ class CommonCheckbox(ComponentPiece):
         """
         return self._STATE_MAP.get(self._icon.find().get_attribute("data-state"), False)
 
-    def set_state(self, should_be_selected: Optional[bool], binding_wait_time: float = 0) -> None:
+    def set_state(self, should_be_selected: Optional[bool], wait_after_click: float = 0) -> None:
         """
         Set the checkbox to a specified state.
-        :param binding_wait_time: How long to wait before allowing the code to continue.
+        :param wait_after_click: How long to wait before allowing the code to continue.
         :param should_be_selected: True if the Checkbox should be selected, False if it should not be selected, or None
             if the checkbox is a tri-state checkbox and should be 'indeterminate'.
         """
-        self._set_state(should_be_selected=should_be_selected, binding_wait_time=binding_wait_time)
+        self._set_state(should_be_selected=should_be_selected, wait_after_click=wait_after_click)
 
     def _is_enabled(self) -> bool:
         """Determine if the checkbox is enabled."""
@@ -134,7 +134,7 @@ class CommonCheckbox(ComponentPiece):
             self,
             should_be_selected: Optional[bool],
             already_clicked_once: bool = False,
-            binding_wait_time: float = 0) -> None:
+            wait_after_click: float = 0) -> None:
         """
         Set the checkbox to a specified selection state.
         :param should_be_selected: True if the Checkbox should be selected, False if it should not be selected, or None
@@ -143,7 +143,7 @@ class CommonCheckbox(ComponentPiece):
             should only ever need to call this function twice in a row, in order to swap between the three states.
         """
         if self.is_selected() != should_be_selected:
-            self.click(binding_wait_time=binding_wait_time)
+            self.click(wait_after_click=wait_after_click)
             # could potentially need to click again (checked/unchecked/indeterminate)
             if not already_clicked_once:
                 # prevent possible recursion issues

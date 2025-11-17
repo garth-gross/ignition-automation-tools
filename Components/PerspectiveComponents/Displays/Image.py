@@ -13,19 +13,21 @@ class Image(BasicPerspectiveComponent):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 5,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 5,
             description: Optional[str] = None,
-            poll_freq: float = 0.5):
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
         super().__init__(
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
-            poll_freq=poll_freq)
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
         self._internal_img = ComponentPiece(
             locator=self._INTERNAL_IMAGE_LOCATOR,
             parent_locator_list=self.locator_list,

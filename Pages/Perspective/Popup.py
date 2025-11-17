@@ -7,7 +7,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
 
 from Components.BasicComponent import ComponentPiece
-from Components.PerspectiveComponents.Common.Icon import CommonIcon
+from Components.Common.Icon import CommonIcon
 from Helpers.IAAssert import IAAssert
 from Helpers.IASelenium import IASelenium
 from Pages.Perspective.View import View
@@ -64,31 +64,31 @@ class Popup(ComponentPiece):
             driver=driver,
             parent_locator_list=self.locator_list,
             description="The title bar of the Popup, where the title text and close icon are displayed.",
-            wait_timeout=0)
+            timeout=0)
         self._drag_handle = ComponentPiece(
             locator=self._DRAG_HANDLE_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
             description="The drag handle located within the title bar.",
-            wait_timeout=0)
+            timeout=0)
         self._popup_body = ComponentPiece(
             locator=self._BODY_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
             description="The internal contents of the Popup, where the View is visible.",
-            wait_timeout=0)
+            timeout=0)
         self._close_icon = CommonIcon(
             locator=self._CLOSE_ICON_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
             description="The 'X' used to close the Popup.",
-            wait_timeout=0)
+            timeout=0)
         self._modal = ComponentPiece(
             locator=self._MODAL_LOCATOR,
             driver=driver,
             description="The overlay displayed when a Popup is opened as a modal.",
             parent_locator_list=None,
-            wait_timeout=0)
+            timeout=0)
         self._resize_zones = {}
         self._make_resize_zones()
 
@@ -172,7 +172,7 @@ class Popup(ComponentPiece):
         :returns: True, if this Popup contains a close icon - False otherwise.
         """
         try:
-            return self._close_icon.find(wait_timeout=0) is not None
+            return self._close_icon.find(timeout=0) is not None
         except TimeoutException:
             return False
 
@@ -184,7 +184,7 @@ class Popup(ComponentPiece):
         :returns: True, if the Popup is currently displaying a title bar at the top of the Popup.
         """
         try:
-            return self.title_bar.find(wait_timeout=0) is not None
+            return self.title_bar.find(timeout=0) is not None
         except TimeoutException:
             return False
 
@@ -196,7 +196,7 @@ class Popup(ComponentPiece):
 
         :returns: True, if the Popup is declaring itself to be a modal AND an overlay exists - False otherwise.
         """
-        return 'popup-modal' in self.find(wait_timeout=0).get_attribute('class') and self.overlay_is_present()
+        return 'popup-modal' in self.find(timeout=0).get_attribute('class') and self.overlay_is_present()
 
     def is_draggable(self) -> bool:
         """
@@ -205,7 +205,7 @@ class Popup(ComponentPiece):
         :returns: True, if the Popup has a draggable handle within the title bar - False otherwise.
         """
         try:
-            return self._drag_handle.find(wait_timeout=0) is not None
+            return self._drag_handle.find(timeout=0) is not None
         except TimeoutException:
             return False
 
@@ -228,7 +228,7 @@ class Popup(ComponentPiece):
         :returns: True if ANY overlay is present, even if for another Popup. False if no overlays are displayed.
         """
         try:
-            return self._modal.find(wait_timeout=0) is not None
+            return self._modal.find(timeout=0) is not None
         except TimeoutException:
             return False
 
@@ -239,7 +239,7 @@ class Popup(ComponentPiece):
         :returns: True, if this Popup is currently displayed - False otherwise.
         """
         try:
-            return self.find(wait_timeout=0).is_displayed()
+            return self.find(timeout=0).is_displayed()
         except TimeoutException:
             return False
 
@@ -272,4 +272,4 @@ class Popup(ComponentPiece):
                 parent_locator_list=self.locator_list,
                 description=f"The resize zone of the {self.formatted_id} Popup in the {resize_zone.value} region "
                             f"({resize_zone}).",
-                wait_timeout=0)
+                timeout=0)

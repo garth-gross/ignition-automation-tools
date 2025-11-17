@@ -1,4 +1,4 @@
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Union
 
 from selenium.webdriver import ActionChains
 from selenium.webdriver.common.by import By
@@ -20,19 +20,21 @@ class Map(BasicPerspectiveComponent):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 2,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 2,
             description: Optional[str] = None,
-            poll_freq: float = 0.5):
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
         super().__init__(
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
-            poll_freq=poll_freq)
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
         self._map_marker = ComponentPiece(
             locator=(By.CSS_SELECTOR, self._MARKER_CSS),
             driver=driver,
@@ -103,7 +105,7 @@ class Map(BasicPerspectiveComponent):
 
         :raises TimeoutException: If the built-in zoom-in button is not present.
         """
-        self._map_zoom_in.click(binding_wait_time=1)
+        self._map_zoom_in.click(wait_after_click=1)
 
     def click_zoom_out_button(self) -> None:
         """
@@ -111,7 +113,7 @@ class Map(BasicPerspectiveComponent):
 
         :raises TimeoutException: If the built-in zoom-out button is not present.
         """
-        self._map_zoom_out.click(binding_wait_time=1)
+        self._map_zoom_out.click(wait_after_click=1)
 
     def get_height_of_popup_wrapper(self, include_units: bool = False) -> str:
         """

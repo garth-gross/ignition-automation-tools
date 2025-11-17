@@ -9,9 +9,9 @@ from selenium.webdriver.support.select import Select
 
 from Components.BasicComponent import ComponentPiece
 from Components.Common.Button import CommonButton
+from Components.Common.Icon import CommonIcon
 from Components.PerspectiveComponents.Common.ComponentModal import ComponentModal
 from Components.PerspectiveComponents.Common.DateTimePicker import CommonDateTimePicker, PerspectiveDate
-from Components.PerspectiveComponents.Common.Icon import CommonIcon
 from Helpers.IAAssert import IAAssert
 
 
@@ -176,7 +176,7 @@ class CommonDateRangeSelector(ComponentModal):
                 locator=self._AM_PM_SELECTS_LOCATOR,
                 driver=driver,
                 parent_locator_list=self._start_time_input_container.locator_list,
-                wait_timeout=1)
+                timeout=1)
             self._end_time_input_container = ComponentPiece(
                 locator=self._END_TIME_INPUT_CONTAINER_LOCATOR, driver=driver, parent_locator_list=self.locator_list)
             self._end_time_hour_input = ComponentPiece(
@@ -219,7 +219,7 @@ class CommonDateRangeSelector(ComponentModal):
                 locator=self._AM_PM_SELECTS_LOCATOR,
                 driver=driver,
                 parent_locator_list=self._end_time_input_container.locator_list,
-                wait_timeout=1,
+                timeout=1,
                 poll_freq=poll_freq)
             self._time_picker_range_info_text = ComponentPiece(
                 locator=self._TIME_PICKER_RANGE_INFO_TEXT_LOCATOR,
@@ -239,7 +239,7 @@ class CommonDateRangeSelector(ComponentModal):
             :raises TimeoutException: If the clear link is not present. Verify you are using the Historical tab and not
                 the Realtime range tab.
             """
-            self._clear_link.click(wait_timeout=0.5)
+            self._clear_link.click(timeout=0.5)
 
         def click_historical_day(self, numeric_day: Union[int, str]) -> None:
             """
@@ -408,7 +408,7 @@ class CommonDateRangeSelector(ComponentModal):
             :returns: True, if the picker is present - False otherwise.
             """
             try:
-                return self.find(wait_timeout=0.5) is not None
+                return self.find(timeout=0.5) is not None
             except TimeoutException:
                 return False
 
@@ -745,7 +745,7 @@ class CommonDateRangeSelector(ComponentModal):
             text_to_set = "".join([Keys.ARROW_RIGHT * len(original), Keys.BACKSPACE * len(original), str(time_value)])
             self._input.click()
             self._input.find().send_keys(text_to_set)
-            self._message_label.click(binding_wait_time=0.25)  # force the loss of focus on the input
+            self._message_label.click(wait_after_click=0.25)  # force the loss of focus on the input
             IAAssert.is_equal_to(
                 actual_value=self._input.find().get_attribute('value'),
                 expected_value=time_value,
@@ -771,7 +771,7 @@ class CommonDateRangeSelector(ComponentModal):
     def __init__(
             self,
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
             description: Optional[str] = None,
             poll_freq: float = 0.5):
         super().__init__(driver=driver, description=description)
@@ -900,7 +900,7 @@ class CommonDateRangeSelector(ComponentModal):
         :returns: True, if the icon is present - False otherwise.
         """
         try:
-            return self._toggle_icon.find(wait_timeout=0.5) is not None
+            return self._toggle_icon.find(timeout=0.5) is not None
         except TimeoutException:
             return False
 
@@ -1115,7 +1115,7 @@ class CommonDateRangeSelector(ComponentModal):
         :returns: True, if the Date Range Selector is expanded as either a modal or 'popover' - False otherwise.
         """
         try:
-            return self.find(wait_timeout=0.5) is not None
+            return self.find(timeout=0.5) is not None
         except TimeoutException:
             return False
 
@@ -1186,7 +1186,7 @@ class CommonDateRangeSelector(ComponentModal):
         """
         _tab_comp = self._historical_tab if tab == DateRangeSelectorTab.HISTORICAL else self._realtime_tab
         try:
-            _tab_comp.click(binding_wait_time=1)
+            _tab_comp.click(wait_after_click=1)
         except StaleElementReferenceException:
             self.select_tab(tab=tab)
 

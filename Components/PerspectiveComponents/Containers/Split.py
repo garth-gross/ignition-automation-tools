@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.action_chains import ActionChains
@@ -7,7 +7,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
 
 from Components.BasicComponent import ComponentPiece, BasicPerspectiveComponent
-from Components.PerspectiveComponents.Common.Icon import CommonIcon
+from Components.Common.Icon import CommonIcon
 from Helpers.CSSEnumerations import CSS
 
 
@@ -27,19 +27,21 @@ class Split(BasicPerspectiveComponent):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 10,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 10,
             description: Optional[str] = None,
-            poll_freq: float = 0.5):
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
         super().__init__(
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
-            poll_freq=poll_freq)
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
         self._content_wrapper = ComponentPiece(
             locator=self._CONTENT_WRAPPER_LOCATOR,
             driver=driver,
@@ -97,7 +99,7 @@ class Split(BasicPerspectiveComponent):
             first_pane_width = float(self._first_pane.get_computed_width())
             handle_width = float(self._split_handle.get_computed_width())
             current_pixel_position = first_pane_width + (handle_width/2)
-        pixel_count = (float(desired_position_in_pixels) - current_pixel_position)
+        pixel_count = int(float(desired_position_in_pixels) - current_pixel_position)
         ActionChains(self.driver)\
             .click_and_hold(self._split_handle.find())\
             .pause(seconds=5)\

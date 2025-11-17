@@ -1,4 +1,4 @@
-from typing import Tuple, List, Optional
+from typing import Tuple, List, Optional, Union
 
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
@@ -25,19 +25,21 @@ class ToggleSwitch(BasicPerspectiveComponent):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 10,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 10,
             description: Optional[str] = None,
-            poll_freq: float = 0.5):
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
         super().__init__(
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
-            poll_freq=poll_freq)
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
         self.ts_thumb = ComponentPiece(
             locator=self._TS_THUMB_LOCATOR,
             driver=self.driver,
@@ -70,31 +72,31 @@ class ToggleSwitch(BasicPerspectiveComponent):
 
         :return: True, if the Toggle Switch is currently selected (on/True/active) - False otherwise.
         """
-        return self._TS_SELECTED_CLASS in self.ts_thumb.find(wait_timeout=0).get_attribute('class')
+        return self._TS_SELECTED_CLASS in self.ts_thumb.find(timeout=0).get_attribute('class')
 
-    def set_switch(self, should_be_selected: bool = True, binding_wait_time: float = 0.5) -> None:
+    def set_switch(self, should_be_selected: bool = True, wait_after_click: float = 0.5) -> None:
         """
         Set the state of the Toggle Switch. Takes no action if the Toggle Switch already has the specified state.
 
         :param should_be_selected: The desired state of the Toggle Switch.
-        :param binding_wait_time: The amount of time to wait after any click action is taken before continuing.
+        :param wait_after_click: The amount of time to wait after any click action is taken before continuing.
 
         :raises AssertionError: If unsuccessful in applying the desired state to the Toggle Switch.
         """
         if not self.wait_on_selection_state(expected_selection_state=should_be_selected):
-            self.click(binding_wait_time=binding_wait_time)
+            self.click(wait_after_click=wait_after_click)
         IAAssert.is_true(
             value=self.wait_on_selection_state(expected_selection_state=should_be_selected),
             failure_msg=f"Failed to set the state of a Toggle Switch to {should_be_selected}.")
 
-    def wait_on_selection_state(self, expected_selection_state: bool, wait_timeout: float = 1) -> bool:
+    def wait_on_selection_state(self, expected_selection_state: bool, timeout: float = 1) -> bool:
         """
         Determine whether the Toggle Switch has the supplied state. Preferable to is_selected because has_state works
         for both active/inactive states.
 
         :param expected_selection_state: The state you want to wait for the Toggle Switch to take, where True is
             selected, and False is unselected.
-        :param wait_timeout: The amount of time (in seconds) you are willing to wait for the Toggle Switch to take the
+        :param timeout: The amount of time (in seconds) you are willing to wait for the Toggle Switch to take the
             specified state.
 
         :returns: True, if the Toggle Switch has the specified selection state - False otherwise.
@@ -105,8 +107,8 @@ class ToggleSwitch(BasicPerspectiveComponent):
                 # verify if they are False too early will almost always return True because the front-end has not caught
                 # up to the backend. This is most prevalent when dealing with a Toggle Switch immediately after it has
                 # entered the DOM, like when Popups are opened.
-                self.wait_on_binding(0.25)
-            return WebDriverWait(driver=self.driver, timeout=wait_timeout).until(
+                self.wait_some_time(0.25)
+            return WebDriverWait(driver=self.driver, timeout=timeout).until(
                 IAec.function_returns_true(
                     custom_function=self._has_selection_state,
                     function_args={'expected_selection_state': expected_selection_state}))

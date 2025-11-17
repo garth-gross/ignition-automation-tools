@@ -1,11 +1,11 @@
 import copy
 import json
 import re
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import Dict, List, Optional
 
 
-class AlarmState(Enum):
+class AlarmState(StrEnum):
     """
     An enumeration of the possible states an alarm could have. Each state here should have a matching event type in
     Ignition's Alarm Journal.
@@ -19,17 +19,17 @@ class AlarmState(Enum):
     DISABLED = 'Disabled'
 
 
-class AlarmStatusTableAlarmState(Enum):
+class AlarmStatusTableAlarmState(StrEnum):
     """
     The Alarm Status Table has its own unique set of states, built out of intersections of basic Alarm States.
     """
-    ACTIVE_ACKNOWLEDGED = ", ".join([AlarmState.ACTIVE.value, AlarmState.ACKNOWLEDGED.value])
-    ACTIVE_UNACKNOWLEDGED = ", ".join([AlarmState.ACTIVE.value, AlarmState.UNACKNOWLEDGED.value])
-    CLEARED_ACKNOWLEDGED = ", ".join([AlarmState.CLEARED.value, AlarmState.ACKNOWLEDGED.value])
-    CLEARED_UNACKNOWLEDGED = ", ".join([AlarmState.CLEARED.value, AlarmState.UNACKNOWLEDGED.value])
+    ACTIVE_ACKNOWLEDGED = ", ".join([AlarmState.ACTIVE, AlarmState.ACKNOWLEDGED])
+    ACTIVE_UNACKNOWLEDGED = ", ".join([AlarmState.ACTIVE, AlarmState.UNACKNOWLEDGED])
+    CLEARED_ACKNOWLEDGED = ", ".join([AlarmState.CLEARED, AlarmState.ACKNOWLEDGED])
+    CLEARED_UNACKNOWLEDGED = ", ".join([AlarmState.CLEARED, AlarmState.UNACKNOWLEDGED])
 
 
-class AlarmPriority(Enum):
+class AlarmPriority(StrEnum):
     """
     An enumeration of the possible priorities an alarm could have.
     """
@@ -119,8 +119,8 @@ class AlarmDefinition(object):
 
     @staticmethod
     def _to_camel_case(name) -> str:
-        init, *temp = name.split('_')
-        return ''.join([init.lower(), *map(str.title, temp)])
+        pieces = name.split('_')
+        return pieces[0].lower() + ''.join([piece.title() for piece in pieces[1:]])
 
 
 class AlarmHelper:

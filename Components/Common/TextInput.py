@@ -17,17 +17,18 @@ class CommonTextInput(ComponentPiece):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 2,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 2,
             description: Optional[str] = None,
             poll_freq: float = 0.5):
-        super().__init__(
+        ComponentPiece.__init__(
+            self,
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
             poll_freq=poll_freq)
         # The internal input piece is important for when our component has a quality overlay because any reference
@@ -35,7 +36,7 @@ class CommonTextInput(ComponentPiece):
         self._internal_input = ComponentPiece(
             locator=self._INTERNAL_INPUT_LOCATOR,
             driver=self.driver,
-            wait_timeout=0,
+            timeout=0,
             parent_locator_list=self.locator_list,
             description="The internal <input> element, used primarily for Text Fields, or when the component contains "
                         "a quality overlay.",
@@ -70,22 +71,23 @@ class CommonTextInput(ComponentPiece):
             self,
             text: Union[float, str],
             release_focus: bool = True,
-            binding_wait_time: float = 0) -> None:
+            wait_after: float = 0) -> None:
         """
         Set the value of this component.
 
         :param text: The text to type into the field.
         :param release_focus: Dictates whether a blur() event is invoked for the component after typing the supplied
             text.
-        :param binding_wait_time: The amount of time (in seconds) to wait after typing the supplied text before allowing
+        :param wait_after: The amount of time (in seconds) to wait after typing the supplied text before allowing
             code to continue.
         """
         text = str(text)
-        # strip special characters (ESC, ENTER) while leaving spaces and punctuation
-        expected_text = text.encode("ascii", "ignore").decode()
+        # strip special characters (ESC, ENTER) while leaving spaces and punctuation. '\n' and '\t are handled
+        # as a special cases due to the potential need in markdown components.
+        expected_text = ''.join(c for c in text if c.isprintable() or c in ['\n', '\t'])
         if text is None or text == '':
             text = ' ' + Keys.BACKSPACE
-        self.wait_on_text_condition(text_to_compare="", condition=TextCondition.DOES_NOT_EQUAL, wait_timeout=0.5)
+        self.wait_on_text_condition(text_to_compare="", condition=TextCondition.DOES_NOT_EQUAL, timeout=0.5)
         current_text = self.get_text()  # Do NOT wait on matching text to be in place
         keys_to_send = ''.join([Keys.ARROW_RIGHT for _ in current_text] +
                                [Keys.BACKSPACE for _ in current_text] +
@@ -102,15 +104,17 @@ class CommonTextInput(ComponentPiece):
                 .move_to_element_with_offset(to_element=input_object.find(), xoffset=5, yoffset=5) \
                 .click() \
                 .perform()
+        if self.driver.name == 'firefox' and Keys.ESCAPE not in keys_to_send:
+            input_object.find().clear()
         input_object.find().send_keys(keys_to_send)
         if release_focus:
             self.release_focus()
         IAAssert.is_equal_to(
             actual_value=self.wait_on_text_condition(
-                text_to_compare=expected_text, condition=TextCondition.EQUALS, wait_timeout=binding_wait_time + 0.5),
+                text_to_compare=expected_text, condition=TextCondition.EQUALS, timeout=wait_after + 0.5),
             expected_value=expected_text,
             failure_msg="Failed to set the value of the input.")
-        self.wait_on_binding(time_to_wait=binding_wait_time)
+        self.wait_some_time(time_to_wait=wait_after)
 
     def _needs_to_get_input_element(self) -> bool:
         """

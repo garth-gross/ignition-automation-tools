@@ -20,16 +20,16 @@ class PagePiece(object):
     def __init__(
             self,
             driver: WebDriver,
-            wait_timeout: float = 10,
+            timeout: float = 10,
             primary_locator: Tuple[Union[By, str], str] = None):
         """
         :param driver: The WebDriver instance which is controlling the browser.
-        :param wait_timeout: The amount of time this page should implicitly wait when using functions which would wait.
+        :param timeout: The amount of time this page should implicitly wait when using functions which would wait.
         :param primary_locator: The locator which defines a known unique element within this content.
         """
         self.driver = driver
-        self._wait_timeout = wait_timeout
-        self.wait = WebDriverWait(self.driver, self._wait_timeout)
+        self._timeout = timeout
+        self.wait = WebDriverWait(self.driver, self._timeout)
         self.primary_locator = primary_locator
         self.selenium = IASelenium(driver=self.driver)
         self.py_logger = logging.getLogger(self.__class__.__name__)

@@ -4,7 +4,7 @@ Conditions on https://selenium-python.readthedocs.io/waits.html.
 Leaving class names in lowercase to conform with existing expected_conditions classes.
 """
 from enum import Enum
-from typing import Tuple, Callable
+from typing import Tuple, Callable, Dict, Union
 
 from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException, WebDriverException
 from selenium.webdriver.common.by import By
@@ -36,7 +36,7 @@ class child_element_has_partial_css_class(object):
     An expectation that within a WebElement there is a specific child WebElement
     which has a provided string as part of its CSS class.
     """
-    def __init__(self, parent_web_element: WebElement, locator: Tuple[By, str], text: str):
+    def __init__(self, parent_web_element: WebElement, locator: Tuple[Union[By, str], str], text: str):
         """
         :param parent_web_element: The WebElement you expect to contain a child WebElement which contains your
             supplied text as part of its HTML `class` attribute.
@@ -78,7 +78,7 @@ class element_in_list_contains_text(object):
     An expectation that within a collection of elements, one of the elements contains the expected text.
     Waits if the list of elements is empty, or if none of the elements currently contain the text.
     """
-    def __init__(self, locator: Tuple[By, str], text: str):
+    def __init__(self, locator: Tuple[Union[By, str], str], text: str):
         """
         :param locator: The tuple used to describe the collection of elements
         :param text: The expected text content of any one of the WebElements described by the supplied locator.
@@ -105,7 +105,7 @@ class element_identified_by_locator_equals_text(object):
     An expectation for checking if the given text is an exact match to the text of the
     element identified by the supplied locator.
     """
-    def __init__(self, locator: Tuple[By, str], text: str):
+    def __init__(self, locator: Tuple[Union[By, str], str], text: str):
         """
         :param locator: The tuple used to describe the singular WebElement we expect to have the supplied text. If
             more than one WebElement would match the supplied locator, only the first will be checked.
@@ -130,7 +130,7 @@ class element_identified_by_locator_contains_text(object):
     An expectation for checking that the given text is contained in the text of the element identified by the
     supplied locator.
     """
-    def __init__(self, locator: Tuple[By, str], text: str):
+    def __init__(self, locator: Tuple[Union[By, str], str], text: str):
         """
         :param locator: The tuple used to describe the singular WebElement we expect to contain the supplied text. If
             more than one WebElement would match the supplied locator, only the first will be checked.
@@ -157,7 +157,7 @@ class element_identified_by_locator_does_not_equal_text(object):
     Sometimes we want to wait for text to change away from a value and evaluate instead of evaluating while waiting
     for some expected value
     """
-    def __init__(self, locator: Tuple[By, str], text: str):
+    def __init__(self, locator: Tuple[Union[By, str], str], text: str):
         """
         :param locator: The tuple which describes the singular WebElement you expect to not have the supplied text.
         :param text: The text you expect to not be present in the WebElement described by the supplied locator.
@@ -180,7 +180,7 @@ class element_identified_by_locator_has_value(object):
     """
     Checks to see if the WebElement described by the supplied locator has the supplied expected value.
     """
-    def __init__(self, locator: Tuple[By, str], expected_value: str):
+    def __init__(self, locator: Tuple[Union[By, str], str], expected_value: str):
         """
         :param locator: The tuple which describes the singular WebElement from which we will check the HTMl `value`
             attribute for the supplied expected value.
@@ -228,7 +228,7 @@ class child_element_exists(object):
     An expectation for checking that a child component exists and returns the child element. This allows us to
     wait for an element to exist within another element
     """
-    def __init__(self, parent_web_element: WebElement, child_locator: Tuple[By, str]):
+    def __init__(self, parent_web_element: WebElement, child_locator: Tuple[Union[By, str], str]):
         """
         :param parent_web_element: The WebElement you expect to contain a child described by the supplied child locator.
         :param child_locator: The locator which describes a WebElement you expect to eventually be a child of the
@@ -274,7 +274,7 @@ class function_returns_true(object):
             "arg1": someValue:
             "arg2": someOtherValue})
     """
-    def __init__(self, custom_function: Callable, function_args: dict):
+    def __init__(self, custom_function: Callable, function_args: Dict = {}):
         """
         :param custom_function: An actual function (non-invoked) to execute with some supplied arguments.
         :param function_args: A dictionary containing the arguments of the supplied function.
@@ -305,7 +305,7 @@ class function_returns_false(object):
             "arg1": someValue:
             "arg2": someOtherValue})
     """
-    def __init__(self, custom_function: Callable, function_args: dict):
+    def __init__(self, custom_function: Callable, function_args: Dict = {}):
         """
         :param custom_function: An actual function (non-invoked) to execute with some supplied arguments.
         :param function_args: A dictionary containing the arguments of the supplied function.
@@ -321,7 +321,7 @@ class function_returns_false(object):
 
 
 class element_is_fully_in_viewport(object):
-    def __init__(self, driver: WebDriver, locator: Tuple[By, str]):
+    def __init__(self, driver: WebDriver, locator: Tuple[Union[By, str], str]):
         """
         :param driver: The WebDriver of the Selenium session.
         :param locator: The locator which describes the singular element to verify is within the boundaries of the

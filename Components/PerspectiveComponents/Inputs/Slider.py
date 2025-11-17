@@ -1,4 +1,4 @@
-from typing import Tuple, List, Optional
+from typing import Tuple, List, Optional, Union
 
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver import ActionChains
@@ -18,19 +18,21 @@ class Slider(BasicPerspectiveComponent):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 3,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 3,
             description: Optional[str] = None,
-            poll_freq: float = 0.5):
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
         super().__init__(
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
-            poll_freq=poll_freq)
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
         self._wrapper = ComponentPiece(
             locator=self._WRAPPER_LOCATOR,
             driver=driver,
@@ -57,19 +59,19 @@ class Slider(BasicPerspectiveComponent):
             parent_locator_list=self._wrapper.locator_list,
             poll_freq=poll_freq)
 
-    def click(self, wait_timeout: int = 1, binding_wait_time: float = 0.5) -> None:
+    def click(self, timeout: int = 1, wait_after_click: float = 0.5) -> None:
         """
         :raises NotImplementedError: Clicking a Slider serves no purpose and risks setting the Slider to an unknown
             value. Please use click_handle instead.
         """
         raise NotImplementedError("Please do not blindly click the Slider.")
 
-    def click_handle(self, binding_wait_time: float = 0.5) -> None:
+    def click_handle(self, wait_after_click: float = 0.5) -> None:
         """
         Click the handle of the Slider. Note that this has the potential to change the value of the slider because
         different browser drivers click in different locations within the handle.
         """
-        self._handle.click(binding_wait_time=binding_wait_time)
+        self._handle.click(wait_after_click=wait_after_click)
 
     def drag_to_percent_of_axis(self, percent: float) -> None:
         """
@@ -114,7 +116,7 @@ class Slider(BasicPerspectiveComponent):
                     and (int(self.get_max()) > int(self.get_current_value())) \
                     and (attempts < max_attempts):
                 attempts += 1
-                ActionChains(driver=self.driver).move_by_offset(x_step, (y_step * -1.0)).perform()
+                ActionChains(driver=self.driver).move_by_offset(x_step, (y_step * -1)).perform()
             ActionChains(driver=self.driver).release().perform()
         elif int(self.get_current_value()) > value:
             ActionChains(driver=self.driver).click_and_hold(on_element=self._handle.find()).perform()
@@ -122,7 +124,7 @@ class Slider(BasicPerspectiveComponent):
                     and (int(self.get_min()) < int(self.get_current_value())) \
                     and (attempts < max_attempts):
                 attempts += 1
-                ActionChains(driver=self.driver).move_by_offset((x_step * -1.0), y_step).perform()
+                ActionChains(driver=self.driver).move_by_offset((x_step * -1), y_step).perform()
             ActionChains(driver=self.driver).release().perform()
         if self.get_current_value() != value:
             raise ValueError(

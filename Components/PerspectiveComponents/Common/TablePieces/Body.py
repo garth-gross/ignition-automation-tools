@@ -3,6 +3,7 @@ from typing import Optional, List, Tuple, Union
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
+from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.wait import WebDriverWait
 
 from Components.BasicComponent import ComponentPiece
@@ -14,22 +15,23 @@ from Helpers.Point import Point
 class Body(ComponentPiece):
     """The body of a table, which contains information and interactions for rows and cells."""
     BODY_CELL_CSS = 'div.tc'
-    BODY_ROW_CSS = 'div.ia_table__body__row'
+    BODY_ROWS_AND_SUBVIEW_CSS = 'div.ia_table__body__row'
+    BODY_ROW_CSS = f'{BODY_ROWS_AND_SUBVIEW_CSS}:not(.subview)'
     ROW_GROUP_CSS = 'div.tr-group'
     _EMPTY_MESSAGE_LOCATOR = (By.CSS_SELECTOR, 'div.emptyMessage')
 
     def __init__(
             self,
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 10,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 10,
             description: Optional[str] = None,
             poll_freq: float = 0.5):
         super().__init__(
             locator=(By.CSS_SELECTOR, "div.tb"),
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
             poll_freq=poll_freq)
         self._empty_message = ComponentPiece(
@@ -44,6 +46,11 @@ class Body(ComponentPiece):
             poll_freq=poll_freq)
         self._rows = ComponentPiece(
             locator=(By.CSS_SELECTOR, self.BODY_ROW_CSS),
+            driver=driver,
+            parent_locator_list=self.locator_list,
+            poll_freq=poll_freq)
+        self._rows_and_sub_views = ComponentPiece(
+            locator=(By.CSS_SELECTOR, self.BODY_ROWS_AND_SUBVIEW_CSS),
             driver=driver,
             parent_locator_list=self.locator_list,
             poll_freq=poll_freq)
@@ -221,7 +228,7 @@ class Body(ComponentPiece):
             poll_freq=self.poll_freq).find_all()
         for cell in _cells:
             if cell.text == str(known_value):
-                return int(cell.get_attribute("data-row-index"))
+                return self._get_row_index(web_element=cell)
         return None
 
     def get_row_count(
@@ -235,10 +242,8 @@ class Body(ComponentPiece):
         :returns: A count of rows in the table, or possibly a count of rows which includes expanded subviews.
         """
         try:
-            rows = self._rows.find_all(wait_timeout=1)
-            if not include_expanded_subviews_in_count:
-                rows = [row for row in rows if "subview" not in row.get_attribute("class")]
-            return len(rows)
+            return len(self._rows_and_sub_views.find_all(timeout=0)) if include_expanded_subviews_in_count\
+                else len(self._rows.find_all(timeout=0))
         except TimeoutException:
             return 0
 
@@ -306,7 +311,7 @@ class Body(ComponentPiece):
         """
         return self._rows.get_computed_width(include_units=include_units)
 
-    def wait_for_cell_to_have_text_by_row_index_column_id(
+    def wait_for_cell_to_have_text(
             self,
             zero_based_row_index: Union[int, str],
             column_id: str,
@@ -335,7 +340,7 @@ class Body(ComponentPiece):
             driver=self.driver,
             parent_locator_list=self.locator_list,
             poll_freq=self.poll_freq).wait_on_text_condition(
-                text_to_compare=text, condition=TextCondition.EQUALS, wait_timeout=timeout)
+                text_to_compare=text, condition=TextCondition.EQUALS, timeout=timeout)
 
     def wait_for_row_count(
             self,
@@ -375,3 +380,7 @@ class Body(ComponentPiece):
         except TimeoutException:
             pass
         return row_count
+
+    @classmethod
+    def _get_row_index(cls, web_element: WebElement) -> int:
+        return int(web_element.get_attribute("data-row-index"))

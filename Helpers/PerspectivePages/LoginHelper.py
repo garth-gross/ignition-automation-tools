@@ -29,33 +29,33 @@ class LoginHelper:
             locator=self._USERNAME_FIELD_CSS_LOCATOR,
             driver=driver,
             parent_locator_list=None,
-            wait_timeout=0,
+            timeout=0,
             description="The username input of the Perspective Login page.")
         self._exit_login_button = BasicComponent(
             locator=self._EXIT_LOGIN_BUTTON_LOCATOR,
             driver=driver,
             parent_locator_list=None,
-            wait_timeout=0,
+            timeout=0,
             description="The button which allows a user to exit login. Available only within projects which do not "
                         "require authentication.")
         self._submit_button = BasicComponent(
             locator=self._SUBMIT_BUTTON_LOCATOR,
             driver=driver,
             parent_locator_list=None,
-            wait_timeout=0,
+            timeout=0,
             description="A generic 'submit' button, available while inputting both the username and the password on "
                         "the Perspective Login page.")
         self._password_input = BasicComponent(
             locator=self._PASSWORD_FIELD_LOCATOR,
             driver=driver,
             parent_locator_list=None,
-            wait_timeout=0,
+            timeout=0,
             description="The password input of the Perspective Login page.")
         self._continue_descriptor = BasicComponent(
             locator=self._CONTINUE_DESCRIPTOR_LOCATOR,
             driver=driver,
             parent_locator_list=None,
-            wait_timeout=0,
+            timeout=0,
             description="The label on the interstitial 'continue' page which informs a user they must continue to the "
                         "Login page.")
 
@@ -71,7 +71,7 @@ class LoginHelper:
         page.
         """
         try:
-            self._submit_button.click(wait_timeout=3)
+            self._submit_button.click(timeout=3)
         except TimeoutException:
             pass
         self.wait_for_login_page()
@@ -89,8 +89,8 @@ class LoginHelper:
         self.continue_to_log_in()
         try:
             self._username_input.find().send_keys(username)
-            self._submit_button.click(binding_wait_time=1)
-            self._password_input.find(wait_timeout=1).send_keys(password)
+            self._submit_button.click(wait_after_click=1)
+            self._password_input.find(timeout=1).send_keys(password)
             self._submit_button.click()
         except TimeoutException:
             pass  # user credentials may have been cached.
@@ -135,7 +135,7 @@ class LoginHelper:
                             "the App Bar.")
             if self._app_bar.sign_out_button_is_displayed():  # potential for project to not require auth
                 self._app_bar.click_sign_out_button()
-                self._app_bar.wait_for_revealer_or_app_bar_to_be_displayed(wait_timeout=3)
+                self._app_bar.wait_for_revealer_or_app_bar_to_be_displayed(timeout=3)
             if not (self.on_interstitial_continue_to_login_page() or self.on_login_page()):
                 # Still in project, because auth not required
                 self._app_bar.click_sign_in_button()
@@ -149,7 +149,7 @@ class LoginHelper:
         :returns: True, if the user can see 'Continue to Login' - False otherwise.
         """
         try:
-            self._submit_button.find(wait_timeout=0)  # to trigger the TOE if we are not on this page.
+            self._submit_button.find(timeout=0)  # to trigger the TOE if we are not on this page.
             return self._continue_descriptor.get_text() == 'You must log in to continue.'
         except TimeoutException:
             return False
@@ -174,6 +174,6 @@ class LoginHelper:
             displayed before allowing code to continue.
         """
         try:
-            self._username_input.find(wait_timeout=time_to_wait)
+            self._username_input.find(timeout=time_to_wait)
         except TimeoutException:
             pass

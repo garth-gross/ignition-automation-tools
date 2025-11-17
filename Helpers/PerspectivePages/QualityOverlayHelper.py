@@ -35,50 +35,50 @@ class QualityOverlayHelper:
     def __init__(self, driver: WebDriver):
         self.driver = driver
         self._popover = ComponentPiece(
-            locator=self._POPOVER_LOCATOR, driver=driver, parent_locator_list=None, wait_timeout=0)
+            locator=self._POPOVER_LOCATOR, driver=driver, parent_locator_list=None, timeout=0)
         self._popover_icon = ComponentPiece(
             locator=self._POPOVER_ICON_LOCATOR,
             driver=driver,
             parent_locator_list=self._popover.locator_list,
-            wait_timeout=0,
+            timeout=0,
             description="The icon in the upper-right of the popover which allows for direct dismissal.")
         self._popover_back_button = ComponentPiece(
             locator=self._BACK_BUTTON_LOCATOR,
             driver=driver,
             parent_locator_list=self._popover.locator_list,
-            wait_timeout=0,
+            timeout=0,
             description="The '<' button/chevron in the bottom of the popover, available only when a component has "
                         "multiple faulted bindings.")
         self._popover_next_button = ComponentPiece(
             locator=self._NEXT_BUTTON_LOCATOR,
             driver=driver,
             parent_locator_list=self._popover.locator_list,
-            wait_timeout=0,
+            timeout=0,
             description="The '>' button/chevron in the bottom of the popover, available only when a component has "
                         "multiple faulted bindings.")
         self._card_count = ComponentPiece(
             locator=self._CARD_COUNT_LOCATOR,
             driver=driver,
             parent_locator_list=self._popover.locator_list,
-            wait_timeout=0,
+            timeout=0,
             description="The piece of popover UI which describes how many faulted bindings a component has.")
         self._body_section = ComponentPiece(
             locator=self._BODY_SECTION_LOCATOR,
             driver=driver,
             parent_locator_list=self._popover.locator_list,
-            wait_timeout=0,
+            timeout=0,
             description="The area between the header and footer of the popover.")
         self._body_descriptor = ComponentPiece(
             locator=self._BODY_DESCRIPTOR_LOCATOR,
             driver=driver,
             parent_locator_list=self._body_section.locator_list,
-            wait_timeout=0,
+            timeout=0,
             description="The label which SHOULD read as 'Subcode'.")
         self._body_content = ComponentPiece(
             locator=self._BODY_CONTENT_LOCATOR,
             driver=driver,
             parent_locator_list=self._body_section.locator_list,
-            wait_timeout=0,
+            timeout=0,
             description="The string designation of the subcode conveyed by a popover.")
 
     def any_popover_is_displayed(self) -> bool:

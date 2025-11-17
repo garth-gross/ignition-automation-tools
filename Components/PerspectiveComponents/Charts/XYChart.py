@@ -23,23 +23,25 @@ class XYChart(BasicPerspectiveComponent):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 5,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 5,
             description: Optional[str] = None,
-            poll_freq: float = 0.5):
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
         super().__init__(
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
-            poll_freq=poll_freq)
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
         self._bar_coll = {}
         self._series_coll = {}
 
-    def click(self, wait_timeout: Optional[Union[int, float]] = None, binding_wait_time: float = 0) -> None:
+    def click(self, timeout: Optional[Union[int, float]] = None, wait_after_click: float = 0) -> None:
         """
         Please do not blindly click the XY Chart; no good will come of it.
 
@@ -47,18 +49,18 @@ class XYChart(BasicPerspectiveComponent):
         """
         raise NotImplementedError("Please don't blindly click the XYChart.")
 
-    def click_series_label_in_legend_by_text(self, label_text: str, binding_wait_time: float = 0) -> None:
+    def click_series_label_in_legend_by_text(self, label_text: str, time_to_wait: float = 0) -> None:
         """
         Click the label of a series within the legend of the XY Chart.
 
         :param label_text: The text of the label to click. This should be the name of the series.
-        :param binding_wait_time: How long to wait after the click before allowing code to continue.
+        :param time_to_wait: How long to wait after the click before allowing code to continue.
 
         :raises TimeoutException: If no label with the provided text is present.
         :raises NoSuchElementException: If unable to locate the click target of the label.
         """
         self._get_series_label_from_legend(label_text=label_text).find_element(*(By.TAG_NAME, "rect")).click()
-        self.wait_on_binding(time_to_wait=binding_wait_time)
+        self.wait_some_time(time_to_wait=time_to_wait)
 
     def get_count_of_bars_in_series(self, series_label: str) -> int:
         """

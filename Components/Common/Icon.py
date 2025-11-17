@@ -1,4 +1,4 @@
-from typing import Tuple, Optional, List
+from typing import Tuple, Optional, List, Union
 
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
@@ -9,7 +9,7 @@ from Helpers.CSSEnumerations import CSS
 
 
 class CommonIcon(ComponentPiece):
-    """An Icon which could be used anywhere within Perspective, including within other components."""
+    """An Icon which could be used anywhere - including within other components."""
     # This list will grow over time, until Dev takes this on as a unit test for their Icon strip-and-zip
     _KNOWN_EXTRANEOUS_D_ATTRIBUTE_LIST = [
         'M24 24H0V0h24v24z',
@@ -19,17 +19,17 @@ class CommonIcon(ComponentPiece):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 2,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 2,
             description: Optional[str] = None,
             poll_freq: float = 0.5):
         super().__init__(
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
             poll_freq=poll_freq)
         self._children = ComponentPiece(
@@ -60,7 +60,7 @@ class CommonIcon(ComponentPiece):
         """
         local_fill = self.get_css_property(property_name=CSS.FILL)
         try:
-            for child in self._children.find_all(wait_timeout=1):
+            for child in self._children.find_all(timeout=1):
                 child_fill = child.value_of_css_property("fill")  # WebElement (WE), so have to use WE function
                 if child_fill != local_fill and child_fill != 'none':  # ignore 'none' because we have 0 control over it
                     return child_fill
@@ -96,7 +96,7 @@ class CommonIcon(ComponentPiece):
         """
         local_stroke = self.get_css_property(property_name=CSS.STROKE)
         try:
-            for child in self._children.find_all(wait_timeout=1):
+            for child in self._children.find_all(timeout=1):
                 child_stroke = child.value_of_css_property("stroke")  # WebElement (WE), so have to use WE function
                 if child_stroke != local_stroke:
                     return child_stroke
@@ -128,7 +128,7 @@ class CommonIcon(ComponentPiece):
         """
         for bad_border in self._bad_borders:
             try:
-                return bad_border.find(wait_timeout=0) is not None
+                return bad_border.find(timeout=0) is not None
             except TimeoutException:
                 pass
         return False
@@ -140,6 +140,6 @@ class CommonIcon(ComponentPiece):
         :returns: True, if rendered - False otherwise.
         """
         try:
-            return self._internal_g.find(wait_timeout=0.5) is not None
+            return self._internal_g.find(timeout=0.5) is not None
         except TimeoutException:
             return False

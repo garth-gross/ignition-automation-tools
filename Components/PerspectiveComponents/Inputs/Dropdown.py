@@ -8,7 +8,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
 
 from Components.BasicComponent import ComponentPiece, BasicPerspectiveComponent
-from Components.PerspectiveComponents.Common.Dropdown import CommonDropdown
+from Components.Common.Dropdown import CommonDropdown
 from Helpers.CSSEnumerations import CSSPropertyValue
 from Helpers.IAAssert import IAAssert
 from Helpers.IAExpectedConditions import IAExpectedConditions as IAec
@@ -27,31 +27,33 @@ class Dropdown(CommonDropdown, BasicPerspectiveComponent):
     _SELECTED_OPTION_LOCATOR = (By.CSS_SELECTOR, '> div')
     _COMMON_CONTAINER_LOCATOR = (By.CSS_SELECTOR, 'div.iaDropdownCommon_container')
     _NO_RESULTS_MODAL_LOCATOR = (By.CSS_SELECTOR, 'a.iaDropdownCommon_option.ia_dropdown__option__noResults')
+    _SELECTED_OPTION_CLASS = 'ia_dropdown__option--selected'
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 4,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 4,
             description: Optional[str] = None,
-            poll_freq: float = 0.5):
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
         CommonDropdown.__init__(
             self,
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             poll_freq=poll_freq)
         BasicPerspectiveComponent.__init__(
             self,
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,  # only needs to be done once
-            poll_freq=poll_freq
-        )
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
         self._placeholder = ComponentPiece(
             locator=self._PLACEHOLDER_LOCATOR,
             driver=self.driver,
@@ -106,7 +108,7 @@ class Dropdown(CommonDropdown, BasicPerspectiveComponent):
         :raises TimeoutException: If the clear all selected options 'X' is not present.
         :raises AssertionError: If unsuccessful in removing all selected options.
         """
-        self._clear_all_options.click(wait_timeout=1)
+        self._clear_all_options.click(timeout=1)
         IAAssert.is_equal_to(
             actual_value=len(self.get_selected_options_as_list()),
             expected_value=0,
@@ -161,7 +163,7 @@ class Dropdown(CommonDropdown, BasicPerspectiveComponent):
     def get_count_of_active_dropdowns(self) -> int:
         """Obtain a count of how many Dropdowns are currently displaying options for selection."""
         try:
-            return len(self._all_active_dropdowns.find_all(wait_timeout=1))
+            return len(self._all_active_dropdowns.find_all(timeout=1))
         except TimeoutException:
             return 0
 
@@ -323,14 +325,25 @@ class Dropdown(CommonDropdown, BasicPerspectiveComponent):
         except TimeoutException:
             return False
 
+    def option_is_selected_in_expanded_options(self, option_text: str) -> bool:
+        """
+        Determine if an option is selected.
+
+        :param option_text: The text of the option to check.
+
+        :raises TimeoutException: If no options are currently displayed, or no option with the supplied text exists.
+        """
+        return self._SELECTED_OPTION_CLASS in self._get_option(
+            option_text=option_text).find().get_attribute("class")
+
     def placeholder_text_is_displayed(self) -> bool:
         """Determine if placeholder text is currently displayed."""
         try:
-            return len(self._placeholder.find(wait_timeout=1).text) > 0
+            return len(self._placeholder.find(timeout=1).text) > 0
         except TimeoutException:
             return False
 
-    def select_option_by_text_if_not_selected(self, option_text: str, binding_wait_time: float = 0.5) -> None:
+    def select_option_by_text_if_not_selected(self, option_text: str, wait_after_click: float = 0.5) -> None:
         """
         Select an option. If the option is already selected, no action is taken.
 
@@ -338,7 +351,7 @@ class Dropdown(CommonDropdown, BasicPerspectiveComponent):
         so this function will attempt to filter the displayed options if the desired option is not readily seen.
 
         :param option_text: The text of the option you would like to select.
-        :param binding_wait_time: The amount of time to wait after selecting an option before allowing the code to
+        :param wait_after_click: The amount of time to wait after selecting an option before allowing the code to
             continue.
 
         :raises TimeoutException: If no option with the supplied text exists as an option.
@@ -356,7 +369,7 @@ class Dropdown(CommonDropdown, BasicPerspectiveComponent):
                     # filtering the displayed options didn't work, so our only option is to scroll and hope it works
                     self._get_option(option_text=option_text).scroll_to_element()
             try:
-                self._get_option(option_text=option_text).click(wait_timeout=1, binding_wait_time=binding_wait_time)
+                self._get_option(option_text=option_text).click(timeout=1, wait_after_click=wait_after_click)
             except TimeoutException as toe:
                 toe.msg = f"Failed to locate element with text of \"{option_text}\"."
                 raise toe
@@ -407,4 +420,4 @@ class Dropdown(CommonDropdown, BasicPerspectiveComponent):
         :raises TimeoutException: If no options are currently displayed, or no option with the supplied text exists.
         """
         return self._FOCUSED_OPTION_CLASS in self._get_option(
-            option_text=option_text).find(wait_timeout=0).get_attribute("class")
+            option_text=option_text).find(timeout=0).get_attribute("class")

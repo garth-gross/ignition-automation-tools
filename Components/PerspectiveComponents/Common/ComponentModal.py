@@ -16,12 +16,12 @@ class ComponentModal(ComponentPiece):
     def __init__(
             self,
             driver: WebDriver,
-            wait_timeout: Union[float, int] = 2,
+            timeout: Union[float, int] = 2,
             description: Optional[str] = None,
             poll_freq: float = 0.5):
         super().__init__(
             locator=self._LOCATOR,
             driver=driver,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
             poll_freq=poll_freq)

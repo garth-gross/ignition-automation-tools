@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.action_chains import ActionChains
@@ -7,7 +7,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
 
 from Components.BasicComponent import ComponentPiece, BasicPerspectiveComponent
-from Components.PerspectiveComponents.Common.Dropdown import CommonDropdown
+from Components.Common.Dropdown import CommonDropdown
 from Components.PerspectiveComponents.Inputs.Button import Button
 
 
@@ -33,19 +33,21 @@ class EquipmentSchedule(BasicPerspectiveComponent):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 2,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 2,
             description: Optional[str] = None,
-            poll_freq: float = 0.5):
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
         super().__init__(
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
-            poll_freq=poll_freq)
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
         self._primary_header = ComponentPiece(locator=self._PRIMARY_HEADER_LOCATOR, driver=driver, poll_freq=poll_freq)
         self._secondary_header = ComponentPiece(
             locator=self._SECONDARY_HEADER_LOCATOR,
@@ -82,7 +84,7 @@ class EquipmentSchedule(BasicPerspectiveComponent):
         Method scrolls to the zoom level element because increment button is out of frame with FireFox automation.
         """
         self._zoom_level.scroll_to_element()
-        self._increment_button.click(binding_wait_time=1)
+        self._increment_button.click(wait_after_click=1)
 
     def click_decrement_zoom_level(self) -> None:
         """
@@ -90,7 +92,7 @@ class EquipmentSchedule(BasicPerspectiveComponent):
         Method scrolls to the zoom level element because decrement button is out of frame with FireFox automation.
         """
         self._zoom_level.scroll_to_element()
-        self._decrement_button.click(binding_wait_time=1)
+        self._decrement_button.click(wait_after_click=1)
 
     def click_delete_event_button(self) -> None:
         """
@@ -101,7 +103,7 @@ class EquipmentSchedule(BasicPerspectiveComponent):
         Method scrolls to zoom level element because delete button is out of frame with Firefox automation.
         """
         self._zoom_level.scroll_to_element()
-        self._delete_button.click(binding_wait_time=1)
+        self._delete_button.click(wait_after_click=1)
 
     def delete_button_is_displayed(self) -> bool:
         """
@@ -232,7 +234,7 @@ class EquipmentSchedule(BasicPerspectiveComponent):
         """
         cell_element = self._get_internal_piece(
             locator=(By.CSS_SELECTOR, f'[data-column="{column_index}"][data-row="{row_index}"]'))
-        cell_element.scroll_to_element(align_to_top=True)
+        cell_element.scroll_to_element()
         offset = int(cell_element.get_computed_width(include_units=False))
         ActionChains(driver=self.driver) \
             .click_and_hold(on_element=cell_element.find()) \
@@ -240,7 +242,7 @@ class EquipmentSchedule(BasicPerspectiveComponent):
             .move_by_offset(xoffset=offset * count_of_columns_to_span, yoffset=0) \
             .release() \
             .perform()
-        cell_element.wait_on_binding(1)
+        cell_element.wait_some_time(1)
 
     def move_event(self, item_id: str, event_id: str, count_of_columns_to_drag: int) -> None:
         """
@@ -255,14 +257,14 @@ class EquipmentSchedule(BasicPerspectiveComponent):
         """
         event_element = self._get_internal_piece(
             locator=(By.CSS_SELECTOR, f'[data-itemid="{item_id}"][data-eventid="{event_id}"]'))
-        event_element.scroll_to_element(align_to_top=True)
+        event_element.scroll_to_element()
         offset = int(float(event_element.get_computed_width(include_units=False)))
         ActionChains(driver=self.driver) \
             .click_and_hold(on_element=event_element.find()) \
             .move_by_offset(xoffset=offset * count_of_columns_to_drag, yoffset=0) \
             .release() \
             .perform()
-        event_element.wait_on_binding(1)
+        event_element.wait_some_time(1)
 
     def resize_event(self, item_id: str, event_id: str, count_of_columns_to_drag: int, direction: Direction) -> None:
         """
@@ -284,14 +286,14 @@ class EquipmentSchedule(BasicPerspectiveComponent):
             locator=(
                 By.CSS_SELECTOR,
                 f'[data-itemid-eventid="{item_id}_{event_id}"][data-direction="{direction.value}"]'))
-        event_resize_element.scroll_to_element(align_to_top=True)
+        event_resize_element.scroll_to_element()
         ActionChains(driver=self.driver) \
             .click_and_hold(on_element=event_resize_element.find()) \
             .pause(2) \
             .move_by_offset(xoffset=offset * count_of_columns_to_drag, yoffset=0) \
             .release() \
             .perform()
-        event_resize_element.wait_on_binding(1)
+        event_resize_element.wait_some_time(1)
 
     def event_is_resizable(self, item_id: str, event_id: str, direction: Direction) -> bool:
         """
@@ -326,12 +328,12 @@ class EquipmentSchedule(BasicPerspectiveComponent):
         self._get_internal_piece(
             locator=(
                 By.CSS_SELECTOR,
-                f'[data-itemid="{item_id}"][data-eventid="{event_id}"]')).click(binding_wait_time=1)
+                f'[data-itemid="{item_id}"][data-eventid="{event_id}"]')).click(wait_after_click=1)
 
     def set_zoom_level(self, text: str):
-        self._zoom_level.select_option_by_text_if_not_selected(option_text=text, binding_wait_time=1)
+        self._zoom_level.select_option_by_text_if_not_selected(option_text=text, wait_after_click=1)
 
-    def _get_internal_piece(self, locator: Tuple[By, str]) -> ComponentPiece:
+    def _get_internal_piece(self, locator: Tuple[Union[By, str], str]) -> ComponentPiece:
         """
         Obtain some internal piece of the Equipment Schedule (almost always an event) via the locator which uniquely
         identifies the internal piece.

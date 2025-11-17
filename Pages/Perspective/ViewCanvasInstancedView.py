@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Union
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
@@ -20,7 +20,7 @@ class ViewCanvasInstancedView(View):
     def __init__(
             self,
             driver: WebDriver,
-            root_locator: Tuple,
+            root_locator: Tuple[Union[By, str], str],
             view_resource_path: str = None):
         """
         :param driver: The WebDriver in use for the browser window.

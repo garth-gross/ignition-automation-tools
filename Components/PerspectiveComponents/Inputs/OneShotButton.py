@@ -1,12 +1,12 @@
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
 
 from Components.BasicComponent import ComponentPiece
+from Components.Common.Icon import CommonIcon
 from Components.PerspectiveComponents.Common.ComponentModal import ComponentModal
-from Components.PerspectiveComponents.Common.Icon import CommonIcon
 from Components.PerspectiveComponents.Inputs.Button import Button
 
 
@@ -19,19 +19,21 @@ class OneShotButton(Button):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 3,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 3,
             description: Optional[str] = None,
-            poll_freq: float = 0.5):
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
         super().__init__(
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
-            poll_freq=poll_freq)
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
         self._modal = ComponentModal(driver=driver, poll_freq=poll_freq)
         self._cancel_button = Button(
             locator=self._CANCEL_BUTTON_LOCATOR,
@@ -77,6 +79,6 @@ class OneShotButton(Button):
         :returns: True, if the confirmation modal is present - False otherwise.
         """
         try:
-            return self._modal.find(wait_timeout=0.5) is not None and self._confirm_button.find(0.5) is not None
+            return self._modal.find(timeout=0.5) is not None and self._confirm_button.find(0.5) is not None
         except TimeoutException:
             return False

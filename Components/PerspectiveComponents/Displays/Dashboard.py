@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver import ActionChains
@@ -39,19 +39,21 @@ class Dashboard(BasicPerspectiveComponent):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 10,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 10,
             description: Optional[str] = None,
-            poll_freq: float = 0.5):
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
         super().__init__(
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
-            poll_freq=poll_freq)
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
         self._grid = ComponentPiece(
             locator=self._GRID_LOCATOR,
             driver=driver,
@@ -67,7 +69,7 @@ class Dashboard(BasicPerspectiveComponent):
             driver=driver,
             parent_locator_list=self.locator_list,
             poll_freq=poll_freq)
-        self._shared_modal = ComponentModal(driver=driver, wait_timeout=2, poll_freq=poll_freq)
+        self._shared_modal = ComponentModal(driver=driver, timeout=2, poll_freq=poll_freq)
         self._add_remove_cancel_button = CommonButton(
             locator=self._ADD_OR_REMOVE_CANCEL_LOCATOR,
             driver=driver,
@@ -82,19 +84,19 @@ class Dashboard(BasicPerspectiveComponent):
             locator=self._REMOVE_WIDGET_MODAL_LOCATOR,
             driver=driver,
             parent_locator_list=self._shared_modal.locator_list,
-            wait_timeout=2,
+            timeout=2,
             poll_freq=poll_freq)
         self._add_widget_modal = ComponentPiece(
             locator=self._ADD_WIDGET_MODAL_LOCATOR,
             driver=driver,
             parent_locator_list=self._shared_modal.locator_list,
-            wait_timeout=2,
+            timeout=2,
             poll_freq=poll_freq)
         self._add_widget_categories = ComponentPiece(
             locator=self._ADD_WIDGET_MODAL_CATEGORY_LOCATOR,
             driver=driver,
             parent_locator_list=self._add_widget_modal.locator_list,
-            wait_timeout=2,
+            timeout=2,
             poll_freq=poll_freq)
         self._add_widget_modal_title = ComponentPiece(
             locator=self._ADD_WIDGET_MODAL_TITLE_LOCATOR,
@@ -105,7 +107,7 @@ class Dashboard(BasicPerspectiveComponent):
             locator=self._WIDGET_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=2,
+            timeout=2,
             poll_freq=poll_freq)
         self._delete_widget = ComponentPiece(
             locator=self._DELETE_LOCATOR,
@@ -217,8 +219,8 @@ class Dashboard(BasicPerspectiveComponent):
             raise TimeoutException(msg="Unable to locate a Dashboard with the defined locator.") from toe
         try:
             self._edit_toggle.hover()
-            self._edit_toggle.wait_on_binding(time_to_wait=1)
-            self._edit_toggle.click(binding_wait_time=1)
+            self._edit_toggle.wait_some_time(time_to_wait=1)
+            self._edit_toggle.click(wait_after_click=1)
         except TimeoutException as toe:
             raise TimeoutException(
                 msg="The edit toggle of the Dashboard was not present. Make sure the toggle is turned on "
@@ -273,16 +275,16 @@ class Dashboard(BasicPerspectiveComponent):
             value=self.category_is_expanded(category=category),
             failure_msg=f"Failed to collapse the '{category}' category.")
 
-    def confirm_remove_widget(self, binding_wait_time: int = 1) -> None:
+    def confirm_remove_widget(self, wait_after_click: int = 1) -> None:
         """
         Click the "Confirm" button visible while attempting to remove a widget from the Dashboard.
 
-        :param binding_wait_time: How long to wait (in seconds) after clicking before allowing code to continue.
+        :param wait_after_click: How long to wait (in seconds) after clicking before allowing code to continue.
 
         :raises TimeoutException: If the "Confirm" button is not present.
         """
         try:
-            self._add_remove_confirm_button.click(binding_wait_time=binding_wait_time)
+            self._add_remove_confirm_button.click(wait_after_click=wait_after_click)
         except TimeoutException as toe:
             raise TimeoutException(
                 msg="Unable to locate the 'Remove' button in the confirmation modal while deleting a widget.") from toe
@@ -656,7 +658,7 @@ class Dashboard(BasicPerspectiveComponent):
         except TimeoutException as toe:
             raise TimeoutException(
                 msg="There was no X available for the active widget, or no widget was selected/active.") from toe
-        self.confirm_remove_widget(binding_wait_time=1)
+        self.confirm_remove_widget(wait_after_click=1)
 
     def _get_category(self, category: str) -> WebElement:
         """

@@ -6,7 +6,7 @@ from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support.wait import WebDriverWait
 
 from Components.BasicComponent import BasicPerspectiveComponent, ComponentPiece
-from Components.PerspectiveComponents.Common.Icon import CommonIcon
+from Components.Common.Icon import CommonIcon
 from Helpers.CSSEnumerations import CSSPropertyValue
 from Helpers.IAAssert import IAAssert
 from Helpers.IAExpectedConditions import IAExpectedConditions as IAec
@@ -20,13 +20,15 @@ class MenuTree(BasicPerspectiveComponent):
             driver: WebDriver,
             locator: Tuple[Union[By, str], str],
             parent_locator_list: Optional[Tuple[Union[By, str], str]] = None,
-            wait_timeout: float = 1):
+            timeout: float = 1,
+            raise_exception_for_overlay: bool = False):
         BasicPerspectiveComponent.__init__(
             self,
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout)
+            timeout=timeout,
+            raise_exception_for_overlay=raise_exception_for_overlay)
         self._item_icons = {}
         self._item_nav_icons = {}
         self._items = {}
@@ -50,7 +52,7 @@ class MenuTree(BasicPerspectiveComponent):
         :return: True, if a 'Back' action is available to the user - False otherwise.
         """
         try:
-            return self._get_submenu_back_action().find(wait_timeout=0) is not None
+            return self._get_submenu_back_action().find(timeout=0) is not None
         except TimeoutException:
             return False
 
@@ -62,10 +64,10 @@ class MenuTree(BasicPerspectiveComponent):
         :raises TimeoutException: If no 'Back' action is currently available, or if no submenu is displayed.
         """
         if self.submenu_is_expanded():
-            self._get_submenu_back_action().find_all(wait_timeout=0)[-1].click()
-            self._get_submenu_back_action().wait_on_binding(0.5)  # allow submenu time to be removed from DOM
+            self._get_submenu_back_action().find_all(timeout=0)[-1].click()
+            self._get_submenu_back_action().wait_some_time(0.5)  # allow submenu time to be removed from DOM
             try:
-                if until_at_top_level and self._get_submenu_back_action().find(wait_timeout=0) is not None:
+                if until_at_top_level and self._get_submenu_back_action().find(timeout=0) is not None:
                     self.click_back_action_within_submenu(until_at_top_level=until_at_top_level)
             except TimeoutException:
                 pass
@@ -85,7 +87,7 @@ class MenuTree(BasicPerspectiveComponent):
         :raises TimeoutException: If no item (or submenu item) exists with the specified text.
         """
         target = self._get_submenu_item(item_text=item_text) if is_in_submenu else self._get_item(item_text=item_text)
-        target.click(binding_wait_time=0.5)  # wait for potential submenu animation
+        target.click(wait_after_click=0.5)  # wait for potential submenu animation
 
     def get_css_value_of_icon_in_use_by_menu_item(
             self,
@@ -237,7 +239,7 @@ class MenuTree(BasicPerspectiveComponent):
 
         :raises TimeoutException: If no Back action is displayed, or if no submenu is displayed.
         """
-        return self._get_submenu_back_action().find_all(wait_timeout=0)[-1].text
+        return self._get_submenu_back_action().find_all(timeout=0)[-1].text
 
     def header_text_is_displayed(self) -> bool:
         """
@@ -246,7 +248,7 @@ class MenuTree(BasicPerspectiveComponent):
         :return: True, if a header is currently displayed within a submenu - False otherwise.
         """
         try:
-            return self._header.find(wait_timeout=0) is not None
+            return self._header.find(timeout=0) is not None
         except TimeoutException:
             return False
 
@@ -261,7 +263,7 @@ class MenuTree(BasicPerspectiveComponent):
         """
         try:
             return self._get_item_icon(
-                item_text=item_text, is_in_submenu=is_in_submenu).find(wait_timeout=0).is_displayed()
+                item_text=item_text, is_in_submenu=is_in_submenu).find(timeout=0).is_displayed()
         except TimeoutException:
             return False
 
@@ -277,7 +279,7 @@ class MenuTree(BasicPerspectiveComponent):
         """
         try:
             item = self._get_submenu_item(item_text=item_text) if is_in_submenu else self._get_item(item_text=item_text)
-            return item.find(wait_timeout=0).is_displayed()
+            return item.find(timeout=0).is_displayed()
         except TimeoutException:
             return False
 
@@ -293,7 +295,7 @@ class MenuTree(BasicPerspectiveComponent):
         """
         try:
             return self._get_item_or_submenu_item(
-                item_text=item_text, is_in_submenu=is_in_submenu).find(wait_timeout=0) is not None
+                item_text=item_text, is_in_submenu=is_in_submenu).find(timeout=0) is not None
         except TimeoutException:
             return False
         
@@ -308,13 +310,13 @@ class MenuTree(BasicPerspectiveComponent):
         """
         try:
             return self._get_item_nav_icon(
-                item_text=item_text, is_in_submenu=is_in_submenu).find(wait_timeout=0).is_displayed()
+                item_text=item_text, is_in_submenu=is_in_submenu).find(timeout=0).is_displayed()
         except TimeoutException:
             return False
 
-    def scroll_to_item(self, item_text: str, align_to_top: bool, is_in_submenu: bool = False) -> None:
+    def scroll_to_item(self, item_text: str, is_in_submenu: bool = False) -> None:
         self._get_item_or_submenu_item(
-            item_text=item_text, is_in_submenu=is_in_submenu).scroll_to_element(align_to_top=align_to_top)
+            item_text=item_text, is_in_submenu=is_in_submenu).scroll_to_element()
 
     def submenu_is_expanded(self) -> bool:
         """
@@ -323,7 +325,7 @@ class MenuTree(BasicPerspectiveComponent):
         :return: True, if a submenu is currently expanded - False otherwise.
         """
         try:
-            return self._get_submenu_back_action().find(wait_timeout=0) is not None
+            return self._get_submenu_back_action().find(timeout=0) is not None
         except TimeoutException:
             return False
 
@@ -332,25 +334,25 @@ class MenuTree(BasicPerspectiveComponent):
             item_text: str,
             should_be_present: bool,
             is_in_submenu: bool = False,
-            wait_timeout: Optional[float] = None):
+            timeout: Optional[float] = None):
         """
         Wait some period of time until an item either becomes present in the Menu Tree or is removed from the Menu Tree.
 
         :param item_text: The text of the item to query for until it has the expected presence.
         :param should_be_present: Specifies whether you are waiting for the item to be present or to not be present.
         :param is_in_submenu: Clarifies whether the item should be expected as a top-level item or within a submenu.
-        :param wait_timeout: How long (in seconds) to remain polling for the item.
+        :param timeout: How long (in seconds) to remain polling for the item.
 
         :return: True, if the item presence state matches the state specified in `should_be_present` - False otherwise.
         """
         item = self._get_item_or_submenu_item(item_text=item_text, is_in_submenu=is_in_submenu)
-        wait = self.wait if wait_timeout is None else WebDriverWait(driver=self.driver, timeout=wait_timeout)
+        wait = self.wait if timeout is None else WebDriverWait(driver=self.driver, timeout=timeout)
 
         def check_for_presence():
             nonlocal item
             nonlocal should_be_present
             try:
-                return (item.find(wait_timeout=0) is not None) == should_be_present
+                return (item.find(timeout=0) is not None) == should_be_present
             except TimeoutException:
                 return should_be_present is False  # item wasn't found, which might be expected
 
@@ -405,7 +407,7 @@ class MenuTree(BasicPerspectiveComponent):
             locator=(By.CSS_SELECTOR, locator_string),
             driver=self.driver,
             parent_locator_list=self._submenu_group.locator_list,
-            wait_timeout=1)
+            timeout=1)
 
     def _get_submenu_item(self, item_text: Optional[str] = None) -> ComponentPiece:
         item = self._items.get(item_text)
@@ -423,6 +425,6 @@ class MenuTree(BasicPerspectiveComponent):
     @staticmethod
     def _item_is_present(item: ComponentPiece) -> bool:
         try:
-            return item.find(wait_timeout=0) is not None
+            return item.find(timeout=0) is not None
         except TimeoutException:
             return False

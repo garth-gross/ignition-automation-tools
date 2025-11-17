@@ -56,13 +56,13 @@ class DockedViewHelper(PagePiece):
     def __init__(self, driver: WebDriver):
         super().__init__(driver=driver)
         self._modal = ComponentPiece(
-            locator=self._DOCK_MODAL_LOCATOR, driver=driver, wait_timeout=1)
+            locator=self._DOCK_MODAL_LOCATOR, driver=driver, timeout=1)
         self._docked_views = {}
 
     def click_modal_overlay(self) -> None:
         """Click a Docked View modal overlay, if present. If no overlay is present, no action is taken."""
         if self.modal_overlay_is_present():
-            self._modal.click(wait_timeout=1, binding_wait_time=1)
+            self._modal.click(timeout=1, wait_after_click=1)
 
     def docked_view_with_root_id_is_expanded(
             self, docked_view_root_container_id: str, side: Optional[Side] = None) -> bool:

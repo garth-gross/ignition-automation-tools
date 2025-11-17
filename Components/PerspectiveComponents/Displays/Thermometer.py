@@ -24,19 +24,21 @@ class Thermometer(BasicPerspectiveComponent):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 2,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 2,
             description: Optional[str] = None,
-            poll_freq: float = 0.5):
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
         super().__init__(
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
-            poll_freq=poll_freq)
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
         self._glass = ComponentPiece(
             locator=self._GLASS_LOCATOR,
             driver=driver,
@@ -83,11 +85,11 @@ class Thermometer(BasicPerspectiveComponent):
             parent_locator_list=self.locator_list,
             poll_freq=poll_freq)
 
-    def get_all_interval_colors(self, wait_timeout: float = 0) -> List[str]:
+    def get_all_interval_colors(self, timeout: float = 0) -> List[str]:
         """
         Obtain a list of all interval colors as strings.
 
-        :param wait_timeout: The amount of time (in seconds) to wait for the Thermometer to appear before returning.
+        :param timeout: The amount of time (in seconds) to wait for the Thermometer to appear before returning.
 
         :returns: A list containing the color of all intervals of the thermometer as strings. Note that different
             browsers may return these values in different formats (RGB vs hex).
@@ -96,14 +98,14 @@ class Thermometer(BasicPerspectiveComponent):
         """
         return [
             Color.from_string(interval.value_of_css_property(CSS.STROKE.value)).hex
-            for interval in self._interval.find_all(wait_timeout=wait_timeout)
+            for interval in self._interval.find_all(timeout=timeout)
         ]
 
-    def get_all_tick_colors(self, wait_timeout: float = 0) -> List[str]:
+    def get_all_tick_colors(self, timeout: float = 0) -> List[str]:
         """
         Obtain a list of all tick colors as strings.
 
-        :param wait_timeout: The amount of time (in seconds) to wait for the Thermometer to appear before returning.
+        :param timeout: The amount of time (in seconds) to wait for the Thermometer to appear before returning.
 
         :returns: A list containing the color of all ticks of the thermometer as strings. Note that different
             browsers may return these values in different formats (RGB vs hex).
@@ -112,14 +114,14 @@ class Thermometer(BasicPerspectiveComponent):
         """
         return [
             Color.from_string(tick.value_of_css_property(CSS.STROKE.value)).hex
-            for tick in self._tick.find_all(wait_timeout=wait_timeout)
+            for tick in self._tick.find_all(timeout=timeout)
         ]
 
-    def get_all_tick_label_colors(self, wait_timeout: float = 0) -> List[str]:
+    def get_all_tick_label_colors(self, timeout: float = 0) -> List[str]:
         """
         Obtain a list of all tick label colors as strings.
 
-        :param wait_timeout: The amount of time (in seconds) to wait for the Thermometer to appear before returning.
+        :param timeout: The amount of time (in seconds) to wait for the Thermometer to appear before returning.
 
         :returns: A list containing the color of all tick labels of the thermometer as strings. Note that different
             browsers may return these values in different formats (RGB vs hex).
@@ -128,7 +130,7 @@ class Thermometer(BasicPerspectiveComponent):
         """
         return [
             Color.from_string(tick_label.value_of_css_property(CSS.FILL.value)).hex
-            for tick_label in self._tick_label.find_all(wait_timeout=wait_timeout)
+            for tick_label in self._tick_label.find_all(timeout=timeout)
         ]
 
     def get_color_of_labels(self, label_index=0) -> str:
@@ -162,11 +164,11 @@ class Thermometer(BasicPerspectiveComponent):
         """
         return self._value_label.find().value_of_css_property(CSS.FONT_SIZE.value)
 
-    def get_glass_color(self, wait_timeout: float = 0) -> str:
+    def get_glass_color(self, timeout: float = 0) -> str:
         """
         Obtain the color of the glass of the Thermometer as a string.
 
-        :param wait_timeout: The amount of time (in seconds) to wait for the Thermometer to appear before returning.
+        :param timeout: The amount of time (in seconds) to wait for the Thermometer to appear before returning.
 
         :returns: The color of the Thermometer's glass as a string. Note that different
             browsers may return these values in different formats (RGB vs hex).
@@ -174,7 +176,7 @@ class Thermometer(BasicPerspectiveComponent):
         :raises TimeoutException: In the event the glass of the Thermometer could not be located.
         """
         return Color.from_string(
-            self._glass.find(wait_timeout=wait_timeout).value_of_css_property(CSS.STROKE.value)
+            self._glass.find(timeout=timeout).value_of_css_property(CSS.STROKE.value)
         ).hex
 
     def get_list_of_levels(self) -> List[str]:
@@ -190,11 +192,11 @@ class Thermometer(BasicPerspectiveComponent):
                 custom_function=self._get_list_of_levels,
                 function_args={}))
 
-    def get_mercury_color(self, wait_timeout: float = 0) -> str:
+    def get_mercury_color(self, timeout: float = 0) -> str:
         """
         Obtain the color (fill) of the mercury within the Thermometer.
 
-        :param wait_timeout: The amount of time (in seconds) to wait for the Thermometer to appear before returning.
+        :param timeout: The amount of time (in seconds) to wait for the Thermometer to appear before returning.
 
         :returns: The mercury color (fill) for the Thermometer as a string.  Note that different
             browsers may return these values in different formats (RGB vs hex).
@@ -202,19 +204,19 @@ class Thermometer(BasicPerspectiveComponent):
         :raises TimeoutException: In the event no mercury could be located.
         """
         return Color.from_string(
-            self._liquid.find(wait_timeout=wait_timeout).value_of_css_property(CSS.FILL.value)
+            self._liquid.find(timeout=timeout).value_of_css_property(CSS.FILL.value)
         ).hex
 
-    def get_count_of_intervals(self, wait_timeout: float = 0) -> int:
+    def get_count_of_intervals(self, timeout: float = 0) -> int:
         """
         Obtain a count of currently displayed tick labels.
 
-        :param wait_timeout: The amount of time (in seconds) to wait for the Thermometer to appear before returning.
+        :param timeout: The amount of time (in seconds) to wait for the Thermometer to appear before returning.
 
         :returns: A count of interval displayed for the Thermometer.
         """
         try:
-            return len(self._interval.find_all(wait_timeout=wait_timeout))
+            return len(self._interval.find_all(timeout=timeout))
         except TimeoutException:
             return 0
 
@@ -238,23 +240,23 @@ class Thermometer(BasicPerspectiveComponent):
         """
         return Color.from_string(self._value_label.find().value_of_css_property(CSS.COLOR.value)).hex
 
-    def get_unit_type(self,  wait_timeout: float = 0) -> str:
+    def get_unit_type(self, timeout: float = 0) -> str:
         """
         Obtain the units in use for the Thermometer.
 
-        :param wait_timeout: The amount of time (in seconds) to wait for the Thermometer to appear before returning.
+        :param timeout: The amount of time (in seconds) to wait for the Thermometer to appear before returning.
 
         :returns: The units displayed in the unit label.
 
         :raises TimeoutException: If the units label is not currently displayed.
         """
-        return self._unit_label.find(wait_timeout=wait_timeout).text[1:]
+        return self._unit_label.find(timeout=timeout).text[1:]
 
-    def get_unit_color(self, wait_timeout: float = 0) -> str:
+    def get_unit_color(self, timeout: float = 0) -> str:
         """
         Obtain the font color in use for the units label.
 
-        :param wait_timeout: The amount of time (in seconds) to wait for the Thermometer to appear before returning.
+        :param timeout: The amount of time (in seconds) to wait for the Thermometer to appear before returning.
 
         :returns: The color in use for the units label as a string. Note that different
             browsers may return these values in different formats (RGB vs hex).
@@ -262,7 +264,7 @@ class Thermometer(BasicPerspectiveComponent):
         :raises TimeoutException: If the units label is not currently displayed.
         """
         return Color.from_string(
-            self._unit_label.find(wait_timeout=wait_timeout).value_of_css_property(CSS.FILL.value)
+            self._unit_label.find(timeout=timeout).value_of_css_property(CSS.FILL.value)
         ).hex
 
     def _get_list_of_levels(self) -> Union[List[str], bool]:

@@ -43,26 +43,28 @@ class _NEF(BasicPerspectiveComponent, CommonTextInput):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 2,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 2,
             description: Optional[str] = None,
-            poll_freq: float = 0.5):
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
         BasicPerspectiveComponent.__init__(
             self,
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
-            poll_freq=poll_freq)
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
         CommonTextInput.__init__(
             self,
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
             poll_freq=poll_freq)
 
@@ -70,7 +72,7 @@ class _NEF(BasicPerspectiveComponent, CommonTextInput):
             self,
             text_to_compare: Optional[Any],
             condition: NumericCondition,
-            wait_timeout: Optional[float] = None) -> str:
+            timeout: Optional[float] = None) -> str:
         """
         Obtain the text of this Numeric Entry Field, after potentially waiting some period of time for the Component to
         display that text.
@@ -78,14 +80,14 @@ class _NEF(BasicPerspectiveComponent, CommonTextInput):
         :param text_to_compare: The text to be used in conjunction with the supplied condition. If the supplied value
             is None, then no wait will ever occur and the text of the component will be immediately returned.
         :param condition: The condition to be used to compare the Component text to the provided text.
-        :param wait_timeout: The amount of time (in seconds) you are willing to wait for the Component to display
+        :param timeout: The amount of time (in seconds) you are willing to wait for the Component to display
             the specified text. If not supplied, this will default to the wait timeout supplied in the constructor
             of the Component.
 
         :returns: The text of the Component as a string, after potentially having waited for an expected text match.
         """
         return CommonTextInput.wait_on_text_condition(
-            self, text_to_compare=text_to_compare, condition=condition, wait_timeout=wait_timeout)
+            self, text_to_compare=text_to_compare, condition=condition, timeout=timeout)
 
 
 class ButtonNEF(_NEF):
@@ -96,20 +98,22 @@ class ButtonNEF(_NEF):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 2,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 2,
             description: Optional[str] = None,
-            poll_freq: float = 0.5):
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
         _NEF.__init__(
             self,
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
-            poll_freq=poll_freq)
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
         self._edit_icon = ComponentPiece(
             locator=(By.TAG_NAME, "a"),
             driver=driver,
@@ -117,7 +121,7 @@ class ButtonNEF(_NEF):
             poll_freq=poll_freq)
         self._modal = ComponentModal(
             driver=driver,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=poll_freq)  # no parent
         self._apply_button = CommonButton(
             locator=self._APPLY_BUTTON_LOCATOR,
@@ -197,7 +201,7 @@ class ButtonNEF(_NEF):
         """
         if not self.modal_is_displayed():
             self.click_edit_icon()
-        return self._modal_input.find(wait_timeout=0).get_attribute("value")
+        return self._modal_input.find(timeout=0).get_attribute("value")
 
     def modal_is_displayed(self) -> bool:
         """
@@ -223,7 +227,7 @@ class ButtonNEF(_NEF):
             attribute - False otherwise.
         """
         placeholder_attr_value = self.get_placeholder_text()
-        value_attr_value = self._internal_input.find(wait_timeout=0).get_attribute("value")
+        value_attr_value = self._internal_input.find(timeout=0).get_attribute("value")
         return (placeholder_attr_value is not None) and (len(placeholder_attr_value) > 0) and (not value_attr_value)
 
     def placeholder_is_displayed_in_modal(self) -> bool:
@@ -245,7 +249,7 @@ class ButtonNEF(_NEF):
             self,
             text: Union[float, str],
             apply_cancel_no_action: Optional[bool] = True,
-            binding_wait_time: float = 0.5) -> None:
+            wait_after: float = 0.5) -> None:
         """
         Convenience function to set the text of the Numeric Entry Field. Handles the opening of the entry modal and also
         applies, cancels, or takes no action as directed via arguments.
@@ -253,7 +257,7 @@ class ButtonNEF(_NEF):
         :param text: The value which you would like to apply to the Numeric Entry Field.
         :param apply_cancel_no_action: If True, apply changes. If False, cancel changes after typing supplied text. If
             None, take no action - leaving the entry modal displayed without any changes committed.
-        :param binding_wait_time: The amount of time to wait after applying or cancelling changes. Ignored if no action
+        :param wait_after: The amount of time to wait after applying or cancelling changes. Ignored if no action
             is to be taken after sending text.
 
         :raises AssertionError: If application or cancellation is specified, and the final displayed (and formatted)
@@ -270,11 +274,10 @@ class ButtonNEF(_NEF):
                     value=self.wait_on_text_condition(
                         text_to_compare=text,
                         condition=NumericCondition.EQUALS,
-                        wait_timeout=binding_wait_time + 0.5)),  # hard-coded extra "soft" wait time due to tags
+                        timeout=wait_after + 0.5)),  # hard-coded extra "soft" wait time due to tags
                 expected_value=_remove_commas(value=_zero_out(expected_value=text)),
                 failure_msg="Failed to set the text of the Button-mode Numeric Entry Field.",
                 as_type=str)
-        self.wait_on_binding(time_to_wait=binding_wait_time)
 
     def _set_text(self, text: Union[float, str]) -> None:
         """
@@ -295,16 +298,25 @@ class DirectNEF(_NEF):
             locator,
             driver: WebDriver,
             parent_locator_list: Optional[List] = None,
-            wait_timeout: float = 5,
+            timeout: float = 5,
             description: Optional[str] = None,
-            poll_freq: float = 0.5):
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
         _NEF.__init__(
             self,
-            locator=locator,
-            driver=driver,
-            parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            locator=locator, 
+            driver=driver, 
+            parent_locator_list=parent_locator_list, 
+            timeout=timeout,
             description=description,
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
+        CommonTextInput.__init__(
+            self,
+            locator=locator, 
+            driver=driver, 
+            parent_locator_list=parent_locator_list, 
+            timeout=timeout,
             poll_freq=poll_freq)
 
     def get_manual_entry_text(self) -> str:
@@ -355,13 +367,13 @@ class DirectNEF(_NEF):
             self,
             text: Union[float, int, str],
             release_focus: bool = True,
-            binding_wait_time: float = 1) -> None:
+            wait_after: float = 1) -> None:
         """
         Set the text of the Direct Numeric Entry Field.
 
         :param text: The value which you would like to apply to the Numeric Entry Field.
         :param release_focus: Specifies whether to commit the text after typing.
-        :param binding_wait_time: The amount of time to wait after applying or cancelling changes. Ignored if no action
+        :param wait_after: The amount of time to wait after applying or cancelling changes. Ignored if no action
             is to be taken after sending text.
 
         :raises AssertionError: If the final displayed (and formatted) value of the Numeric Entry Field does not match
@@ -379,11 +391,11 @@ class DirectNEF(_NEF):
                     value=self.wait_on_text_condition(
                         text_to_compare=text,
                         condition=NumericCondition.EQUALS,
-                        wait_timeout=binding_wait_time + 0.5)),  # hard-coded extra "soft" wait time due to tags
+                        timeout=wait_after + 0.5)),  # hard-coded extra "soft" wait time due to tags
                 expected_value=_remove_commas(value=_zero_out(expected_value=text)),
                 failure_msg="Failed to apply the supplied text to the Direct-variant Numeric Entry Field.",
                 as_type=str)
-        self.wait_on_binding(time_to_wait=binding_wait_time)
+        self.wait_some_time(time_to_wait=wait_after)
 
 
 class ProtectedNEF(DirectNEF):
@@ -396,32 +408,34 @@ class ProtectedNEF(DirectNEF):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 10,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 10,
             description: Optional[str] = None,
-            poll_freq: float = 0.5):
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
         DirectNEF.__init__(
             self,
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
-            poll_freq=poll_freq)
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
 
     def set_text(
             self,
             text: Union[float, int, str],
             release_focus: bool = True,
-            binding_wait_time: float = 1) -> None:
+            wait_after: float = 1) -> None:
         """
         Pass-through function to set the text of the Protected Numeric Entry Field via double-click.
 
         :param text: The value which you would like to apply to the Numeric Entry Field.
         :param release_focus: Specifies whether to commit the text after typing.
-        :param binding_wait_time: The amount of time to wait after applying or cancelling changes. Ignored if no action
+        :param wait_after: The amount of time to wait after applying or cancelling changes. Ignored if no action
             is to be taken after sending text.
 
         :raises AssertionError: If the final displayed (and formatted) value of the Numeric Entry Field does not match
@@ -430,19 +444,19 @@ class ProtectedNEF(DirectNEF):
         self.set_text_via_double_click(
             text=text,
             release_focus=release_focus,
-            binding_wait_time=binding_wait_time)
+            wait_after=wait_after)
 
     def set_text_via_double_click(
             self,
             text: Union[float, int, str],
             release_focus: bool = True,
-            binding_wait_time: float = 1) -> None:
+            wait_after: float = 1) -> None:
         """
         Set the text of the Protected Numeric Entry Field via double-click.
 
         :param text: The value which you would like to apply to the Numeric Entry Field.
         :param release_focus: Specifies whether to commit the text after typing.
-        :param binding_wait_time: The amount of time to wait after applying or cancelling changes. Ignored if no action
+        :param wait_after: The amount of time to wait after applying or cancelling changes. Ignored if no action
             is to be taken after sending text.
 
         :raises AssertionError: If the final displayed (and formatted) value of the Numeric Entry Field does not match
@@ -450,29 +464,30 @@ class ProtectedNEF(DirectNEF):
         """
         IASelenium(driver=self.driver).double_click(web_element=self.find())
         self._set_text(text=str(text), release_focus=release_focus)
+        self.wait_some_time(time_to_wait=wait_after)
         if release_focus:
             IAAssert.is_equal_to(
                 actual_value=_remove_commas(
                     value=self.wait_on_text_condition(
                         text_to_compare=text,
                         condition=NumericCondition.EQUALS,
-                        wait_timeout=binding_wait_time + 0.5)),  # hard-coded extra "soft" wait time due to tags
+                        timeout=wait_after + 0.5)),  # hard-coded extra "soft" wait time due to tags
                 expected_value=_remove_commas(value=_zero_out(expected_value=text)),
                 failure_msg="Failed to apply the supplied text to the Protected-variant Numeric Entry Field.",
                 as_type=str)
-        self.wait_on_binding(time_to_wait=binding_wait_time)
+        self.wait_some_time(time_to_wait=wait_after)
 
     def set_text_via_long_press(
             self,
             text: str,
             release_focus: bool = True,
-            binding_wait_time: float = 1) -> None:
+            wait_after: float = 1) -> None:
         """
         Set the text of the Protected Numeric Entry Field via a long-press.
 
         :param text: The value which you would like to apply to the Numeric Entry Field.
         :param release_focus: Specifies whether to commit the text after typing.
-        :param binding_wait_time: The amount of time to wait after applying or cancelling changes. Ignored if no action
+        :param wait_after: The amount of time to wait after applying or cancelling changes. Ignored if no action
             is to be taken after sending text.
 
         :raises AssertionError: If the final displayed (and formatted) value of the Numeric Entry Field does not match
@@ -486,12 +501,12 @@ class ProtectedNEF(DirectNEF):
                     value=self.wait_on_text_condition(
                         text_to_compare=text,
                         condition=NumericCondition.EQUALS,
-                        wait_timeout=binding_wait_time + 0.5)),  # hard-coded extra "soft" wait time due to tags
+                        timeout=wait_after + 0.5)),  # hard-coded extra "soft" wait time due to tags
                 expected_value=_remove_commas(value=_zero_out(expected_value=text)),
                 failure_msg="Failed to apply the supplied text to the Protected-variant Numeric Entry Field while "
                             "activating the input via a long-press interaction.",
                 as_type=str)
-        self.wait_on_binding(time_to_wait=binding_wait_time)
+        self.wait_some_time(time_to_wait=wait_after)
 
     def _set_text(self, text: str, release_focus: bool = False) -> None:
         """

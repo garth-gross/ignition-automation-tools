@@ -1,6 +1,6 @@
 from enum import Enum
 from time import sleep
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Union
 
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
@@ -33,7 +33,7 @@ class DockedView(View):
             driver: WebDriver,
             side: Side,
             root_id: str,
-            primary_locator: Tuple[By, str] = None,
+            primary_locator: Tuple[Union[By, str], str] = None,
             view_resource_path: Optional[str] = None,
             config_id: Optional[str] = None):
         """
@@ -60,7 +60,7 @@ class DockedView(View):
         handle_locator = (
             By.CSS_SELECTOR,
             f"div.docked-view-{self._side.value}{dock_id_piece} div.view-toggle")
-        self._dock_toggle_handle = ComponentPiece(driver=driver, locator=handle_locator, wait_timeout=1)
+        self._dock_toggle_handle = ComponentPiece(driver=driver, locator=handle_locator, timeout=1)
 
     def click_handle(self) -> None:
         """
@@ -196,7 +196,7 @@ class DockedView(View):
             View does not have an HTML `id` attribute applied to the root node.
         """
         try:
-            return self._root.find(wait_timeout=0).is_displayed()
+            return self._root.find(timeout=0).is_displayed()
         except TimeoutException:
             return False
 
