@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
@@ -86,17 +86,19 @@ class CommonSymbol(BasicPerspectiveComponent):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]],
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]],
             description: Optional[str] = None,
-            poll_freq: float = 0.5):
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
         super().__init__(
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
             description=description,
-            poll_freq=poll_freq)
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
         self._main_svg = ComponentPiece(
             locator=self.MAIN_SVG_LOCATOR, driver=driver, parent_locator_list=self.locator_list, poll_freq=poll_freq)
         self._label_text = ComponentPiece(
@@ -247,8 +249,19 @@ class _SymbolWithFeet(CommonSymbol):
 
 class Motor(_SymbolWithFeet):
     """A Perspective Motor Symbol."""
-    def __init__(self, locator, driver: WebDriver, parent_locator_list: Optional[List] = None, poll_freq: float = 0.5):
-        super().__init__(locator=locator, driver=driver, parent_locator_list=parent_locator_list, poll_freq=poll_freq)
+    def __init__(
+            self,
+            locator,
+            driver: WebDriver,
+            parent_locator_list: Optional[List] = None,
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
+        super().__init__(
+            locator=locator,
+            driver=driver,
+            parent_locator_list=parent_locator_list,
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
 
 
 class Pump(_SymbolWithFeet):
@@ -261,8 +274,19 @@ class Pump(_SymbolWithFeet):
         CENTRIFUGAL = "centrifugal"
         VACUUM = "vacuum"
 
-    def __init__(self, locator, driver: WebDriver, parent_locator_list: Optional[List] = None, poll_freq: float = 0.5):
-        super().__init__(locator=locator, driver=driver, parent_locator_list=parent_locator_list, poll_freq=poll_freq)
+    def __init__(
+            self,
+            locator,
+            driver: WebDriver,
+            parent_locator_list: Optional[List] = None,
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
+        super().__init__(
+            locator=locator,
+            driver=driver,
+            parent_locator_list=parent_locator_list,
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
 
     def pump_is_variant(self, variant: Variant) -> bool:
         """
@@ -277,8 +301,19 @@ class Sensor(CommonSymbol):
     """A Perspective Sensor Symbol."""
     _SENSOR_BODY_LOCATOR = (By.CSS_SELECTOR, "g.sensor_sensor_body")
 
-    def __init__(self, locator, driver: WebDriver, parent_locator_list: Optional[List] = None, poll_freq: float = 0.5):
-        super().__init__(locator=locator, driver=driver, parent_locator_list=parent_locator_list, poll_freq=poll_freq)
+    def __init__(
+            self,
+            locator,
+            driver: WebDriver,
+            parent_locator_list: Optional[List] = None,
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
+        super().__init__(
+            locator=locator,
+            driver=driver,
+            parent_locator_list=parent_locator_list,
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
         self._body = ComponentPiece(
             locator=self._SENSOR_BODY_LOCATOR,
             driver=driver,
@@ -377,8 +412,19 @@ class Valve(CommonSymbol):
         FAILED_TO_OPEN = "failedToOpen"
         PARTIALLY_CLOSED = "partiallyClosed"
 
-    def __init__(self, locator, driver: WebDriver, parent_locator_list: Optional[List] = None, poll_freq: float = 0.5):
-        super().__init__(locator=locator, driver=driver, parent_locator_list=parent_locator_list, poll_freq=poll_freq)
+    def __init__(
+            self,
+            locator,
+            driver: WebDriver,
+            parent_locator_list: Optional[List] = None,
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
+        super().__init__(
+            locator=locator,
+            driver=driver,
+            parent_locator_list=parent_locator_list,
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
         self._main_valve = ComponentPiece(
             locator=self._MAIN_VALVE_LOCATOR,
             driver=driver,
@@ -438,8 +484,19 @@ class Vessel(CommonSymbol):
         VERTICAL = "vertical"
         HORIZONTAL = "horizontal"
 
-    def __init__(self, locator, driver: WebDriver, parent_locator_list: Optional[List] = None, poll_freq: float = 0.5):
-        super().__init__(locator=locator, driver=driver, parent_locator_list=parent_locator_list, poll_freq=poll_freq)
+    def __init__(
+            self,
+            locator,
+            driver: WebDriver,
+            parent_locator_list: Optional[List] = None,
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
+        super().__init__(
+            locator=locator,
+            driver=driver,
+            parent_locator_list=parent_locator_list,
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
         self._agitator_and_rotor = ComponentPiece(
             locator=self._AGITATOR_AND_ROTOR_LOCATOR,
             driver=driver,
@@ -453,6 +510,6 @@ class Vessel(CommonSymbol):
         returns: True, if both are displayed - False otherwise.
         """
         try:
-            return len(self._agitator_and_rotor.find_all(wait_timeout=1)) == 2
+            return len(self._agitator_and_rotor.find_all(timeout=1)) == 2
         except TimeoutException:
             return False

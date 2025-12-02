@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
@@ -7,8 +7,9 @@ from selenium.webdriver.remote.webelement import WebElement
 
 from Components.BasicComponent import BasicPerspectiveComponent, ComponentPiece
 from Components.Common.FileUpload import FileUpload as CommonFileUpload
+from Components.Common.Icon import CommonIcon
 from Components.PerspectiveComponents.Common.ComponentModal import ComponentModal
-from Components.PerspectiveComponents.Common.Icon import CommonIcon
+from Helpers.Formatting import FilePathFormatting
 
 
 class FileUpload(BasicPerspectiveComponent, CommonFileUpload):
@@ -44,19 +45,30 @@ class FileUpload(BasicPerspectiveComponent, CommonFileUpload):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 10,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 10,
             description: Optional[str] = None,
-            poll_freq: float = 0.5):
-        super().__init__(
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
+        CommonFileUpload.__init__(
+            self,
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
             poll_freq=poll_freq)
+        BasicPerspectiveComponent.__init__(
+            self,
+            locator=locator,
+            driver=driver,
+            parent_locator_list=parent_locator_list,
+            timeout=timeout,
+            description=description,
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
         self._display_message = ComponentPiece(
             locator=self._SPAN_LOCATOR, driver=driver, parent_locator_list=self.locator_list, poll_freq=poll_freq)
         self._primary_icon = CommonIcon(
@@ -161,7 +173,7 @@ class FileUpload(BasicPerspectiveComponent, CommonFileUpload):
         while not self.summary_panel_is_visible() and attempts < max_number_of_attempts:
             self.click_next_page()
             attempts += 1
-        self._get_clear_uploads_link().click(wait_timeout=1)
+        self._get_clear_uploads_link().click(timeout=1)
 
     def click_next_page(self) -> None:
         """
@@ -169,7 +181,7 @@ class FileUpload(BasicPerspectiveComponent, CommonFileUpload):
 
         :raises TimeoutException: If already on the last page, or if the summary is not present.
         """
-        self._next_page_link.click(binding_wait_time=1)
+        self._next_page_link.click(wait_after_click=1)
 
     def click_previous_page(self) -> None:
         """
@@ -177,7 +189,7 @@ class FileUpload(BasicPerspectiveComponent, CommonFileUpload):
 
         :raises TimeoutException: If already on the first page, or if the summary is not present.
         """
-        self._previous_page_link.click(binding_wait_time=1)
+        self._previous_page_link.click(wait_after_click=1)
 
     def _expose_file_input_element(self) -> None:
         """
@@ -274,7 +286,7 @@ class FileUpload(BasicPerspectiveComponent, CommonFileUpload):
         on_summary_page = self.get_current_page_index() == -1
         if on_summary_page:
             self.click_previous_page()
-            self.wait_on_binding(time_to_wait=0.5)
+            self.wait_some_time(time_to_wait=0.5)
         count_of_results = int(self._file_message.get_text().split(" ")[-1])
         if on_summary_page:
             self.click_next_page()
@@ -287,7 +299,7 @@ class FileUpload(BasicPerspectiveComponent, CommonFileUpload):
         :raises TimeoutException: If no warning is currently displayed.
         """
         try:
-            return self._get_file_upload_error().find(wait_timeout=0.5).text
+            return self._get_file_upload_error().find(timeout=0.5).text
         except TimeoutException:
             return ""
 
@@ -304,11 +316,11 @@ class FileUpload(BasicPerspectiveComponent, CommonFileUpload):
     def is_using_small_layout(self) -> bool:
         """Determine if the component is currently rendering in the 'small' layout."""
         try:
-            return self._primary_icon.find(wait_timeout=0) is not None
+            return self._primary_icon.find(timeout=0) is not None
         except TimeoutException:
             return False
 
-    def is_displaying_hover_info_icon(self, wait_timeout: int = 1) -> bool:
+    def is_displaying_hover_info_icon(self, timeout: int = 1) -> bool:
         """
         Determine if the component is currently displaying the information icon.
 
@@ -316,7 +328,7 @@ class FileUpload(BasicPerspectiveComponent, CommonFileUpload):
             if rendering in the 'small' or 'large' layout OR no file extension restrictions are in place.
         """
         try:
-            return self._supported_file_types_icon.find(wait_timeout=wait_timeout) is not None
+            return self._supported_file_types_icon.find(timeout=timeout) is not None
         except TimeoutException:
             return False
 
@@ -343,8 +355,8 @@ class FileUpload(BasicPerspectiveComponent, CommonFileUpload):
         current_index = self.get_current_page_index()
         # stop if we reach the desired page or the summary page
         while current_index != desired_index and current_index != -1:
-            self._previous_page_link.click(binding_wait_time=0.5) if current_index > desired_index \
-                else self._next_page_link.click(binding_wait_time=0.5)
+            self._previous_page_link.click(wait_after_click=0.5) if current_index > desired_index \
+                else self._next_page_link.click(wait_after_click=0.5)
             current_index = self.get_current_page_index()
 
     def next_page_link_is_enabled(self) -> bool:
@@ -369,7 +381,7 @@ class FileUpload(BasicPerspectiveComponent, CommonFileUpload):
             return ComponentPiece(
                 locator=self._SPAN_LOCATOR,
                 driver=self.driver,
-                wait_timeout=1,
+                timeout=1,
                 parent_locator_list=self._modal.locator_list).find() is not None
         except TimeoutException:
             return False
@@ -377,24 +389,25 @@ class FileUpload(BasicPerspectiveComponent, CommonFileUpload):
     def summary_panel_is_visible(self) -> bool:
         """Determine if the Summary panel is visible in the upload summary pagination panel."""
         try:
-            return "Summary" in self._file_message.find(wait_timeout=0.5).text
+            return "Summary" in self._file_message.find(timeout=0.5).text
         except TimeoutException:
             return False
 
-    def upload_file_by_path(self, normalized_file_path: str) -> None:
+    def upload_file_by_path(self, file_path: str) -> None:
         """
         Upload an individual file by supplying a normalized file path.
 
-        :param normalized_file_path: An OS-agnostic string file path.
+        :param file_path: A string file path.
         """
-        self.upload_files(normalized_file_path_list=[normalized_file_path])
+        self.upload_files(path_list=[file_path])
 
-    def upload_files(self, normalized_file_path_list: List[str]) -> None:
+    def upload_files(self, path_list: List[str]) -> None:
         """
-        Upload a list of files by supplying normalized file paths.
+        Upload a list of files by supplying a list of file paths.
 
-        :param normalized_file_path_list: A list of OS-agnostic string file paths.
+        :param path_list: A list of string file paths.
         """
+        normalized_file_path_list = [FilePathFormatting.system_safe_file_path(file_path) for file_path in path_list]
         self.driver.execute_script('arguments[0].style.display="block";', self._find_file_input())
         self._find_file_input().send_keys('\n'.join(normalized_file_path_list))
         self.driver.execute_script('arguments[0].style.display="none";', self._find_file_input())
@@ -413,7 +426,7 @@ class FileUpload(BasicPerspectiveComponent, CommonFileUpload):
                 locator=self._SUCCESS_MESSAGE_LOCATOR,
                 driver=self.driver,
                 parent_locator_list=parent_locator_list,
-                poll_freq=self.poll_freq).find(wait_timeout=5).text == 'Upload Successful!'
+                poll_freq=self.poll_freq).find(timeout=5).text == 'Upload Successful!'
         except TimeoutException:
             return False
 
@@ -424,7 +437,7 @@ class FileUpload(BasicPerspectiveComponent, CommonFileUpload):
         :returns: True, if a warning is currently displayed - False otherwise.
         """
         try:
-            return self._get_file_upload_error().find(wait_timeout=0.5) is not None
+            return self._get_file_upload_error().find(timeout=0.5) is not None
         except TimeoutException:
             return False
 
@@ -440,7 +453,7 @@ class FileUpload(BasicPerspectiveComponent, CommonFileUpload):
             locator=self._INPUT_LOCATOR,
             driver=self.driver,
             parent_locator_list=self._modal.locator_list if self.is_using_small_layout() else self.locator_list,
-            poll_freq=self.poll_freq).find(wait_timeout=2)
+            poll_freq=self.poll_freq).find(timeout=2)
 
     def _get_file_upload_error(self) -> ComponentPiece:
         """

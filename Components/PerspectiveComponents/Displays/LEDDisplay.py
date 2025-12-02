@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Union
 
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
@@ -21,30 +21,32 @@ class LEDDisplay(BasicPerspectiveComponent):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 2,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 2,
             description: Optional[str] = None,
-            poll_freq: float = 0.5):
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
         super().__init__(
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
-            poll_freq=poll_freq)
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
         self._digit = ComponentPiece(
             locator=self._DIGIT_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=poll_freq)
         self._background_rect = ComponentPiece(
             locator=self._BACKGROUND_RECT_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=poll_freq)
         self._digit_coll = {}
 
@@ -62,7 +64,7 @@ class LEDDisplay(BasicPerspectiveComponent):
             locator=(By.TAG_NAME, "use.ia_ledComponent__diode--on"),
             driver=self.driver,
             parent_locator_list=self._get_digit_by_index(zero_based_index_from_right=0).locator_list,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=self.poll_freq).get_css_property(property_name=CSS.FILL)
 
     def get_background_color(self) -> str:
@@ -102,7 +104,7 @@ class LEDDisplay(BasicPerspectiveComponent):
             locator=(By.TAG_NAME, "use.ia_ledComponent__diode--off"),
             driver=self.driver,
             parent_locator_list=self._get_digit_by_index(zero_based_index_from_right=0).locator_list,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=self.poll_freq).get_css_property(property_name=CSS.FILL)
 
     def get_text(self) -> str:
@@ -124,7 +126,7 @@ class LEDDisplay(BasicPerspectiveComponent):
                 locator=(By.TAG_NAME, "use"),
                 driver=self.driver,
                 parent_locator_list=self._get_digit_by_index(zero_based_index_from_right=0).locator_list,
-                wait_timeout=1,
+                timeout=1,
                 poll_freq=self.poll_freq).find_all()) > 7
         except TimeoutException:
             # If we fail to find the expected fourteen-segment svgs, we should at least verify the LED exists.
@@ -160,7 +162,7 @@ class LEDDisplay(BasicPerspectiveComponent):
                 displayed_text.insert(
                     0,
                     self._get_digit_by_index(zero_based_index_from_right=i)
-                        .find(wait_timeout=0)
+                        .find(timeout=0)
                         .get_attribute(name="data-char"))
         except TimeoutException:
             pass
@@ -181,7 +183,7 @@ class LEDDisplay(BasicPerspectiveComponent):
                 locator=(By.CSS_SELECTOR, f'svg[data-index="{zero_based_index_from_right}"]'),
                 driver=self.driver,
                 parent_locator_list=self.locator_list,
-                wait_timeout=1,
+                timeout=1,
                 poll_freq=self.poll_freq)
             self._digit_coll[zero_based_index_from_right] = digit
         return digit

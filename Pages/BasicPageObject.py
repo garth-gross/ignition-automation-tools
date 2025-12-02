@@ -21,18 +21,18 @@ class BasicPageObject(PagePiece):
             self,
             driver: WebDriver,
             url: str,
-            wait_timeout: float = 10,
+            timeout: float = 10,
             primary_locator: Tuple[Union[By, str], str] = None):
         """
         :param driver: The WebDriver in use for the browser window.
         :param url: The URL of this page.
-        :param wait_timeout: The amount of time (in seconds) to implicitly wait.
+        :param timeout: The amount of time (in seconds) to implicitly wait.
         :param primary_locator: A Tuple which describes how to locate a unique element on the page, if there is one.
         """
         PagePiece.__init__(
             self,
             driver=driver,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             primary_locator=primary_locator)
         self.url = url
         self._navigation_string = f'Navigated to {self.url}'

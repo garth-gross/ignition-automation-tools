@@ -5,8 +5,8 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.remote.webdriver import WebDriver
 
 from Components.BasicComponent import BasicPerspectiveComponent
+from Components.Common.Icon import CommonIcon
 from Components.Common.TextInput import CommonTextInput
-from Components.PerspectiveComponents.Common.Icon import CommonIcon
 
 
 class PasswordField(BasicPerspectiveComponent):
@@ -15,30 +15,32 @@ class PasswordField(BasicPerspectiveComponent):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 10,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 10,
             description: Optional[str] = None,
-            poll_freq: float = 0.5):
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
         super().__init__(
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
-            poll_freq=poll_freq)
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
         self._internal_input = CommonTextInput(
             locator=(By.TAG_NAME, "input"),
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=2,
+            timeout=2,
             poll_freq=poll_freq)
         self._icon = CommonIcon(
             locator=self._SHOW_PASSWORD_ICON_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=poll_freq)
 
     def display_password(self, should_be_displayed: bool) -> None:
@@ -95,19 +97,19 @@ class PasswordField(BasicPerspectiveComponent):
             self,
             text: Union[int, float, str],
             release_focus: bool = True,
-            binding_wait_time: float = 0) -> None:
+            wait_after: float = 0) -> None:
         """
         Set the text content of the Password Field.
 
         :param text: The text content you would like to set the Password Field to contain.
         :param release_focus: Dictates whether the ENTER Key is supplied as a means to commit the value.
-        :param binding_wait_time: The amount of time to wait after applying the supplied text before we allow code to
+        :param wait_after: The amount of time to wait after applying the supplied text before we allow code to
             continue.
         """
         self._internal_input.find().clear()
         text = text + Keys.ENTER if release_focus else text
         self._internal_input.find().send_keys(text)
-        self.wait_on_binding(time_to_wait=binding_wait_time)
+        self.wait_some_time(time_to_wait=wait_after)
 
     def show_password_icon_is_visible(self) -> bool:
         """

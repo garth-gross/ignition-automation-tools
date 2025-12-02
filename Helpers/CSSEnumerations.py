@@ -35,6 +35,18 @@ class CSS:
         STRETCH = CSSPropertyValue("stretch")
 
     BACKGROUND_COLOR = CSSPropertyValue("background-color")
+
+    class Behavior:
+        AUTO = CSSPropertyValue("auto")
+        INSTANT = CSSPropertyValue("instant")
+        SMOOTH = CSSPropertyValue("smooth")
+
+    class Block:
+        CENTER = CSSPropertyValue("center")
+        END = CSSPropertyValue("end")
+        NEAREST = CSSPropertyValue("nearest")
+        START = CSSPropertyValue("start")
+
     BORDER_TOP_COLOR = CSSPropertyValue("border-top-color")
     BORDER_TOP_LEFT_RADIUS = CSSPropertyValue("border-top-left-radius")
     BORDER_TOP_RIGHT_RADIUS = CSSPropertyValue("border-top-right-radius")
@@ -69,7 +81,21 @@ class CSS:
         ROW_REVERSE = CSSPropertyValue("row-reverse")
 
     FONT_SIZE = CSSPropertyValue("font-size")
+
+    class GridArea:
+        GRID_ROW_END = CSSPropertyValue("grid-row-end")
+        GRID_ROW_START = CSSPropertyValue("grid-row-start")
+        GRID_COLUMN_END = CSSPropertyValue("grid-column-end")
+        GRID_COLUMN_START = CSSPropertyValue("grid-column-start")
+
     HEIGHT = CSSPropertyValue("height")
+
+    class Inline:
+        CENTER = CSSPropertyValue("center")
+        END = CSSPropertyValue("end")
+        NEAREST = CSSPropertyValue("nearest")
+        START = CSSPropertyValue("start")
+
     JUSTIFY_CONTENT = CSSPropertyValue('justify-content')
     MARGIN_BOTTOM = CSSPropertyValue("margin-bottom")
     MARGIN_LEFT = CSSPropertyValue("margin-left")

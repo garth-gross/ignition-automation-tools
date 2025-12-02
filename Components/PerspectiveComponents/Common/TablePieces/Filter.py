@@ -1,4 +1,4 @@
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Union
 
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
@@ -22,28 +22,28 @@ class Filter(ComponentPiece):
     def __init__(
             self,
             driver: WebDriver,
-            parent_locator_list: List[Tuple[By, str]] = None,
-            wait_timeout: float = 1,
+            parent_locator_list: List[Tuple[Union[By, str], str]] = None,
+            timeout: float = 1,
             description: Optional[str] = None,
             poll_freq: float = 0.5):
         super().__init__(
             locator=(By.CSS_SELECTOR, 'div[class*="Filter"]'),
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
             poll_freq=poll_freq)
         self._filter_input = CommonTextInput(
             locator=self._FILTER_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             poll_freq=poll_freq)
         self._results_label = ComponentPiece(
             locator=self._RESULTS_LABEL_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             poll_freq=poll_freq)
 
     def get_results_text(self) -> str:
@@ -77,12 +77,12 @@ class Filter(ComponentPiece):
         except TimeoutException:
             return False
 
-    def set_filter_text(self, text: str, binding_wait_time: float = 0) -> None:
+    def set_filter_text(self, text: str, wait_after: float = 0) -> None:
         """
         Set the text filter to contain some text.
 
         :param text: The text you want to supply to the filter of the Table.
-        :param binding_wait_time: how long (in seconds) after applying the text to the filter you would like to wait
+        :param wait_after: how long (in seconds) after applying the text to the filter you would like to wait
             before allowing code to continue.
 
         :raises TimeoutException: If the filter input is not present.
@@ -93,7 +93,7 @@ class Filter(ComponentPiece):
             text_accounting_for_empty_str = Keys.SPACE + Keys.BACK_SPACE + Keys.ENTER if text == '' else text
             self._filter_input.set_text(
                 text=text_accounting_for_empty_str,
-                binding_wait_time=binding_wait_time)
+                wait_after=wait_after)
         IAAssert.is_equal_to(
             actual_value=self._filter_input.wait_on_text_condition(
                 text_to_compare=text, condition=TextCondition.EQUALS),

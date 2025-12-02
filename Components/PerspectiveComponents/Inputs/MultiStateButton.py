@@ -17,19 +17,21 @@ class MultiStateButton(BasicPerspectiveComponent):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 3,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 3,
             description: Optional[str] = None,
-            poll_freq: float = 0.5):
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
         super().__init__(
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
-            poll_freq=poll_freq)
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
         self._generic_button = ComponentPiece(
             locator=self._GENERAL_BUTTON_LOCATOR,
             driver=driver,
@@ -45,19 +47,19 @@ class MultiStateButton(BasicPerspectiveComponent):
         """
         raise NotImplementedError
 
-    def click_button_by_text(self, button_text: str, wait_timeout: float = 0.5, binding_wait_time: float = 0.5) -> None:
+    def click_button_by_text(self, button_text: str, timeout: float = 0.5, wait_after_click: float = 0.5) -> None:
         """
         Click one of the Multi-State Buttons by text. If multiple buttons share the same text only the first match will
         be clicked.
 
         :param button_text: The text of the button you would like to click.
-        :param wait_timeout: The amount of time to wait until a button with the specified text becomes visible.
-        :param binding_wait_time: The amount of time after the click event to wait before allowing code to continue.
+        :param timeout: The amount of time to wait until a button with the specified text becomes visible.
+        :param wait_after_click: The amount of time after the click event to wait before allowing code to continue.
 
         :raises TimeoutException: If no button with the specified text is found.
         """
         self._get_button_by_text(button_text=button_text).click(
-            wait_timeout=wait_timeout, binding_wait_time=binding_wait_time)
+            timeout=timeout, wait_after_click=wait_after_click)
 
     def get_css_property_value_of_button_by_text(
             self,
@@ -73,9 +75,9 @@ class MultiStateButton(BasicPerspectiveComponent):
         """
         return self._get_button_by_text(button_text=button_text).get_css_property(property_name=property_name)
 
-    def get_button_count(self, wait_timeout: float = 0.5) -> int:
+    def get_button_count(self, timeout: float = 0.5) -> int:
         """Obtain a count of all states contained within this Multi-State Button."""
-        return len(self._generic_button.find_all(wait_timeout=wait_timeout))
+        return len(self._generic_button.find_all(timeout=timeout))
 
     def get_button_gap(self) -> float:
         """Obtain the current gap between each button."""

@@ -21,24 +21,26 @@ class Tab(BasicPerspectiveComponent):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 2,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 2,
             description: Optional[str] = None,
-            poll_freq: float = 0.5):
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
         super().__init__(
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
-            poll_freq=poll_freq)
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
         self._tabs = ComponentPiece(
             locator=self._TAB_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             poll_freq=poll_freq)
         self._tabs_by_index = {}
         self._active_tab = ComponentPiece(
@@ -55,7 +57,7 @@ class Tab(BasicPerspectiveComponent):
 
         :raises TimeoutException: If the supplied index is not present.
         """
-        self._get_tab_by_index(index=index).click(binding_wait_time=0.5)
+        self._get_tab_by_index(index=index).click(wait_after_click=0.5)
 
     def _get_tab_by_index(self, index: int) -> ComponentPiece:
         """
@@ -89,7 +91,7 @@ class Tab(BasicPerspectiveComponent):
         :returns: The count of tabs which belong to this container.
         """
         try:
-            return len(self._tabs.find_all(wait_timeout=1))
+            return len(self._tabs.find_all(timeout=1))
         except TimeoutException:
             return 0
 

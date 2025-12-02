@@ -1,5 +1,4 @@
-from typing import List, Optional, Tuple
-from typing import Union
+from typing import List, Optional, Tuple, Union
 
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver.common.by import By
@@ -7,11 +6,11 @@ from selenium.webdriver.remote.webdriver import WebDriver
 
 from Components.BasicComponent import ComponentPiece
 from Components.Common.Button import CommonButton
+from Components.Common.Dropdown import CommonDropdown
 from Components.Common.TextInput import CommonTextInput
 from Components.PerspectiveComponents.Common.ComponentModal import ComponentModal
 from Components.PerspectiveComponents.Common.DateRangeSelector \
     import CommonDateRangeSelector, HistoricalRange, PerspectiveDate
-from Components.PerspectiveComponents.Common.Dropdown import CommonDropdown
 from Helpers.CSSEnumerations import CSS
 from Helpers.IAAssert import IAAssert
 from Helpers.IAExpectedConditions.IAExpectedConditions import TextCondition
@@ -38,12 +37,12 @@ class FilterModal(ComponentModal):
     _DATE_RANGE_PICKER_LOCATOR = (By.CSS_SELECTOR, "div.iaDateRangeTimePicker")
 
     def __init__(self, driver: WebDriver, description: Optional[str] = None):
-        super().__init__(driver=driver, wait_timeout=1, description=description)
+        super().__init__(driver=driver, timeout=1, description=description)
         self._condition_dd = CommonDropdown(
             locator=self._CONDITION_DROPDOWN_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=1)
+            timeout=1)
         self._basic_value_input = CommonTextInput(
             locator=self._BASIC_VALUE_INPUT_LOCATOR, driver=driver, parent_locator_list=self.locator_list)
         self._remove_filter_link = ComponentPiece(
@@ -80,7 +79,7 @@ class FilterModal(ComponentModal):
 
         :raises TimeoutException: If the 'Remove Filter' link is not present.
         """
-        self._remove_filter_link.scroll_to_element(align_to_top=True)
+        self._remove_filter_link.scroll_to_element()
         self._remove_filter_link.click()
         
     def end_time_hours_input_is_enabled(self) -> bool:
@@ -327,7 +326,7 @@ class FilterModal(ComponentModal):
         :raises TimeoutException: if the value input field is not present.
         :raises AssertionError: If we fail to set the input to the supplied value.
         """
-        self._basic_value_input.set_text(text=text, binding_wait_time=1)
+        self._basic_value_input.set_text(text=text, wait_after=1)
         IAAssert.is_equal_to(
             actual_value=self._basic_value_input.wait_on_text_condition(
                 text_to_compare=text, condition=TextCondition.EQUALS),
@@ -387,15 +386,15 @@ class Footer(ComponentPiece):
     def __init__(
             self,
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 1,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 1,
             description: Optional[str] = None,
             poll_freq: float = 0.5):
         super().__init__(
             locator=self._FOOTER_CONTAINER_LOCATOR,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
             poll_freq=poll_freq)
         self._footer_rows = ComponentPiece(
@@ -435,15 +434,15 @@ class Header(ComponentPiece):
     def __init__(
             self,
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 1,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 1,
             description: Optional[str] = None,
             poll_freq: float = 0.5):
         super().__init__(
             locator=self._HEADER_CONTAINER_LOCATOR,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
             poll_freq=poll_freq)
         self._header_rows = ComponentPiece(

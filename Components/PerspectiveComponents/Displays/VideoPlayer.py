@@ -57,19 +57,21 @@ class VideoPlayer(BasicPerspectiveComponent):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 2,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 2,
             description: Optional[str] = None,
-            poll_freq: float = 0.5):
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
         super().__init__(
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
-            poll_freq=poll_freq)
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
         self._error_message = ComponentPiece(
             locator=self._ERROR_MESSAGE_LOCATOR,
             driver=driver,
@@ -271,7 +273,7 @@ class VideoPlayer(BasicPerspectiveComponent):
         :raises ElementClickInterceptedException: If the base controls are configured to hide during times of
             inactivity.
         """
-        self._volume_icon.click(binding_wait_time=0.25)
+        self._volume_icon.click(wait_after_click=0.25)
 
     def controls_are_displayed(self) -> bool:
         """
@@ -341,7 +343,7 @@ class VideoPlayer(BasicPerspectiveComponent):
         if not modal_displayed_originally:
             self._volume_icon.click()
         try:
-            return int(self._volume_percent.find(wait_timeout=1).get_attribute("style").split(' ')[-1].split('%')[0])
+            return int(self._volume_percent.find(timeout=1).get_attribute("style").split(' ')[-1].split('%')[0])
         finally:
             if not modal_displayed_originally:
                 self.click_volume_icon()
@@ -439,7 +441,7 @@ class VideoPlayer(BasicPerspectiveComponent):
 
     def _play_rate_options_displayed(self) -> bool:
         """Determine if the play-rate options are displayed."""
-        return len(self._play_rate_options.find_all(wait_timeout=0.5)) > 0
+        return len(self._play_rate_options.find_all(timeout=0.5)) > 0
 
     def _select_play_rate(self, desired_rate: PlayRate) -> None:
         """Set the play rate of the Video Player."""
@@ -461,7 +463,7 @@ class VideoPlayer(BasicPerspectiveComponent):
         while current_volume != desired_volume:
             ActionChains(driver=self.driver).move_by_offset(xoffset=0, yoffset=directional_modifier).perform()
             current_volume = int(self._volume_percent.find(
-                wait_timeout=1).get_attribute("style").split(' ')[-1].split('%')[0])
+                timeout=1).get_attribute("style").split(' ')[-1].split('%')[0])
         if value_needs_adjustment:
             ActionChains(driver=self.driver).release().perform()
         if self._volume_modal_is_displayed():
@@ -470,7 +472,7 @@ class VideoPlayer(BasicPerspectiveComponent):
     def _volume_modal_is_displayed(self) -> bool:
         """Determine if the volume modal is displayed."""
         try:
-            return self._volume_slider_handle.find(wait_timeout=0.5) is not None
+            return self._volume_slider_handle.find(timeout=0.5) is not None
         except TimeoutException:
             return False
 

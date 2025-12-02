@@ -25,21 +25,21 @@ class Tooltip(ComponentPiece):
     def __init__(
             self,
             driver: WebDriver,
-            wait_timeout: Union[int, float] = 2,
+            timeout: Union[int, float] = 2,
             description: Optional[str] = None,
             poll_freq: float = 0.5):
         super().__init__(
             locator=self._COMPONENT_TOOLTIP_LOCATOR,
             driver=driver,
             parent_locator_list=None,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
             poll_freq=poll_freq)
         self._tail = ComponentPiece(
             locator=self._TAIL_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             poll_freq=poll_freq)
 
     def any_component_tooltip_is_displayed(self) -> bool:
@@ -65,20 +65,20 @@ class Tooltip(ComponentPiece):
             return False
 
     def get_count_of_tooltips(
-            self, expected_count: int = 1, wait_timeout: Union[int, float] = 5, poll_frequency: float = 0.5) -> int:
+            self, expected_count: int = 1, timeout: Union[int, float] = 5, poll_frequency: float = 0.5) -> int:
         """
         Obtain a count of all displayed tooltips.
 
         :param expected_count: If supplied, we will attempt to wait until this many tooltips are displayed before
             returning a value.
-        :param wait_timeout: The amount of time (in seconds) to wait for any tooltips to appear. Use this when tooltips
+        :param timeout: The amount of time (in seconds) to wait for any tooltips to appear. Use this when tooltips
             contain any configured delay.
         :param poll_frequency: How often to poll the DOM as we wait for an expected count of tooltips.
 
         :returns: A count of displayed tooltips.
         """
         try:
-            WebDriverWait(driver=self.driver, timeout=wait_timeout, poll_frequency=poll_frequency).until(
+            WebDriverWait(driver=self.driver, timeout=timeout, poll_frequency=poll_frequency).until(
                 IAec.function_returns_true(
                     custom_function=self._expected_number_of_tooltips_displayed,
                     function_args={'expected_count': expected_count}))
@@ -86,7 +86,7 @@ class Tooltip(ComponentPiece):
         except TimeoutException:
             pass
         try:
-            return len(self.find_all(wait_timeout=1))
+            return len(self.find_all(timeout=1))
         except TimeoutException:
             return 0
 
@@ -159,6 +159,6 @@ class Tooltip(ComponentPiece):
             otherwise.
         """
         try:
-            return len(self.find_all(wait_timeout=0)) == expected_count
+            return len(self.find_all(timeout=0)) == expected_count
         except TimeoutException:
             return False

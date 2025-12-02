@@ -67,48 +67,48 @@ class GoogleMap(BasicPerspectiveComponent):
 
         def __init__(
                 self,
-                locator: Tuple[By, str],
+                locator: Tuple[Union[By, str], str],
                 driver: WebDriver,
                 parent_locator_list: Optional[list] = None,
-                wait_timeout: float = 2,
+                timeout: float = 2,
                 description: Optional[str] = None,
                 poll_freq: float = 0.5):
             super().__init__(
                 locator=locator,
                 driver=driver,
                 parent_locator_list=parent_locator_list,
-                wait_timeout=wait_timeout,
+                timeout=timeout,
                 description=description,
                 poll_freq=poll_freq)
             self._dropdown_map_type_controls = ComponentPiece(
                 locator=self._DROPDOWN_MAP_TYPE_CONTROLS_LOCATOR,
                 driver=driver,
                 parent_locator_list=None,
-                wait_timeout=1,
+                timeout=1,
                 poll_freq=poll_freq)
             self._map_control = ComponentPiece(
                 locator=self._MAP_CONTROL_LOCATOR,
                 driver=driver,
                 parent_locator_list=None,
-                wait_timeout=1,
+                timeout=1,
                 poll_freq=poll_freq)
             self._satellite_control = ComponentPiece(
                 locator=self._SATELLITE_CONTROL_LOCATOR,
                 driver=driver,
                 parent_locator_list=None,
-                wait_timeout=1,
+                timeout=1,
                 poll_freq=poll_freq)
             self._labels_list_item = ComponentPiece(
                 locator=self._LABELS_LIST_ITEM_LOCATOR,
                 driver=driver,
                 parent_locator_list=None,
-                wait_timeout=1,
+                timeout=1,
                 poll_freq=poll_freq)
             self._terrain_list_item = ComponentPiece(
                 locator=self._TERRAIN_LIST_ITEM_LOCATOR,
                 driver=driver,
                 parent_locator_list=None,
-                wait_timeout=1,
+                timeout=1,
                 poll_freq=poll_freq)
 
         def set_map_type(self, map_type: Union[MapType, MapSubtype], should_be_selected: bool) -> None:
@@ -153,7 +153,7 @@ class GoogleMap(BasicPerspectiveComponent):
 
             :raises TimeoutException: If the MapType UI is not found.
             """
-            return self._labels_list_item.find(wait_timeout=0).get_attribute('aria-checked') == 'true'
+            return self._labels_list_item.find(timeout=0).get_attribute('aria-checked') == 'true'
 
         def terrain_checkbox_is_selected(self) -> bool:
             """
@@ -163,7 +163,7 @@ class GoogleMap(BasicPerspectiveComponent):
 
             :raises TimeoutException: If the MapType UI is not found.
             """
-            return self._terrain_list_item.find(wait_timeout=0).get_attribute('aria-checked') == 'true'
+            return self._terrain_list_item.find(timeout=0).get_attribute('aria-checked') == 'true'
 
         def map_type_dropdown_is_displayed(self):
             """
@@ -172,7 +172,7 @@ class GoogleMap(BasicPerspectiveComponent):
             :returns: True if the dropdown menu is displayed, False otherwise.
             """
             try:
-                return self._dropdown_map_type_controls.find(wait_timeout=0) is not None
+                return self._dropdown_map_type_controls.find(timeout=0) is not None
             except TimeoutException:
                 return False
 
@@ -184,7 +184,7 @@ class GoogleMap(BasicPerspectiveComponent):
 
             :raises TimeoutException: If the MapType UI is not found or dropdown is not displayed.
             """
-            return self._dropdown_map_type_controls.find(wait_timeout=0).get_attribute(name='aria-expanded') == 'true'
+            return self._dropdown_map_type_controls.find(timeout=0).get_attribute(name='aria-expanded') == 'true'
 
         def expand_map_type_dropdown(self):
             """
@@ -202,7 +202,7 @@ class GoogleMap(BasicPerspectiveComponent):
             """
             try:
                 if not self.map_type_dropdown_is_expanded():
-                    self._dropdown_map_type_controls.click(wait_timeout=0, binding_wait_time=0.5)
+                    self._dropdown_map_type_controls.click(timeout=0, wait_after_click=0.5)
                 return self.map_type_dropdown_is_expanded()
             except TimeoutException:
                 return False
@@ -223,7 +223,7 @@ class GoogleMap(BasicPerspectiveComponent):
             """
             try:
                 if self.map_type_dropdown_is_expanded():
-                    self._dropdown_map_type_controls.click(wait_timeout=0, binding_wait_time=0.5)
+                    self._dropdown_map_type_controls.click(timeout=0, wait_after_click=0.5)
                 return not self.map_type_dropdown_is_expanded()
             except TimeoutException:
                 return False
@@ -240,11 +240,11 @@ class GoogleMap(BasicPerspectiveComponent):
             if map_type.value == MapType.MAP.value:
                 self._map_control.click()
                 if self.terrain_checkbox_is_selected():
-                    self._terrain_list_item.click(wait_timeout=0)
+                    self._terrain_list_item.click(timeout=0)
             else:
                 self._satellite_control.click()
                 if self.labels_checkbox_is_selected():
-                    self._labels_list_item.click(wait_timeout=0)
+                    self._labels_list_item.click(timeout=0)
 
         def _set_map_subtype(self, map_subtype: MapSubtype, should_be_selected: bool) -> None:
             """
@@ -260,12 +260,12 @@ class GoogleMap(BasicPerspectiveComponent):
                 self._map_control.click()
                 if self.terrain_checkbox_is_selected() != should_be_selected:
                     self.wait.until(ec.presence_of_element_located(self._TERRAIN_LIST_ITEM_LOCATOR)).click()
-                    self.wait_on_binding()
+                    self.wait_some_time()
             else:
                 self._satellite_control.click()
                 if self.labels_checkbox_is_selected() != should_be_selected:
                     self.wait.until(ec.presence_of_element_located(self._LABELS_LIST_ITEM_LOCATOR)).click()
-                    self.wait_on_binding()
+                    self.wait_some_time()
 
         def _check_selected_main_map_type(self) -> MapType:
             """
@@ -277,85 +277,87 @@ class GoogleMap(BasicPerspectiveComponent):
                 return MapType.MAP if MapType.MAP.value == self._dropdown_map_type_controls.get_text() \
                     else MapType.SATELLITE
             else:
-                if self._map_control.find(wait_timeout=0).get_attribute(name='aria-checked') == 'true':
+                if self._map_control.find(timeout=0).get_attribute(name='aria-checked') == 'true':
                     return MapType.MAP
                 else:
                     return MapType.SATELLITE
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 10,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 10,
             description: Optional[str] = None,
-            poll_freq: float = 0.5):
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
         super().__init__(
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
-            poll_freq=poll_freq)
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
         self._dismiss_overlay_button = ComponentPiece(
             locator=self._DISMISS_OVERLAY_BUTTON_LOCATOR,
             driver=driver,
             parent_locator_list=None,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=poll_freq)
         self._zoom_out_button = ComponentPiece(
             locator=self._ZOOM_OUT_BUTTON_LOCATOR,
             driver=driver,
             parent_locator_list=None,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=poll_freq)
         self._zoom_in_button = ComponentPiece(
             locator=self._ZOOM_IN_BUTTON_LOCATOR,
             driver=driver,
             parent_locator_list=None,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=poll_freq)
         self._full_screen_button = ComponentPiece(
             locator=self._FULL_SCREEN_BUTTON_LOCATOR,
             driver=driver,
             parent_locator_list=None,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=poll_freq)
         self._tilt_map_button = ComponentPiece(
             locator=self._TILT_MAP_BUTTON_LOCATOR,
             driver=driver,
             parent_locator_list=None,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=poll_freq)
         self._rotate_tilt_map_clockwise_button = ComponentPiece(
             locator=self._ROTATE_TILT_MAP_CLOCKWISE_BUTTON_LOCATOR,
             driver=driver,
             parent_locator_list=None,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=poll_freq)
         self._rotate_tilt_map_counterclockwise_button = ComponentPiece(
             locator=self._ROTATE_TILT_MAP_COUNTERCLOCKWISE_BUTTON_LOCATOR,
             driver=driver,
             parent_locator_list=None,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=poll_freq)
         self._external_link = ComponentPiece(
             locator=self._EXTERNAL_LINK_LOCATOR,
             driver=driver,
             parent_locator_list=None,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=poll_freq)
         self._map_type_controls = self._MapTypeControls(
             locator=self._MAP_TYPE_CONTROLS_LOCATOR,
             driver=driver,
             parent_locator_list=None,
-            wait_timeout=5,
+            timeout=1,
             poll_freq=poll_freq)
         self._general_close_popup_button = ComponentPiece(
             locator=self._GENERAL_CLOSE_POPUP_BUTTON_LOCATOR,
             driver=driver,
             parent_locator_list=None,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=poll_freq)
 
     def click_dismiss_overlay_button(self) -> None:
@@ -364,14 +366,14 @@ class GoogleMap(BasicPerspectiveComponent):
         """
         self._dismiss_overlay_button.click()
 
-    def click_full_screen_button(self, binding_wait_time: float = 0.5) -> None:
+    def click_full_screen_button(self, wait_after_click: float = 0.5) -> None:
         """
         Clicks full screen button.
 
-        :param binding_wait_time: The amount of time (in seconds) to wait after the click before allowing code
+        :param wait_after_click: The amount of time (in seconds) to wait after the click before allowing code
             to continue.
         """
-        self._full_screen_button.click(binding_wait_time=binding_wait_time)
+        self._full_screen_button.click(wait_after_click=wait_after_click)
 
     def click(self, x_offset: int = 0, y_offset: int = 0) -> None:
         """
@@ -385,60 +387,60 @@ class GoogleMap(BasicPerspectiveComponent):
             .click()\
             .perform()
 
-    def click_rotate_map_clockwise_button(self, binding_wait_time: float = 0.5) -> None:
+    def click_rotate_map_clockwise_button(self, wait_after_click: float = 0.5) -> None:
         """
         Clicks the rotate clockwise button.
 
-        :param binding_wait_time: The amount of time (in seconds) to wait after the click before allowing code
+        :param wait_after_click: The amount of time (in seconds) to wait after the click before allowing code
             to continue.
 
         :raises TimeoutException: If the rotate clockwise button is not found.
         """
-        self._rotate_tilt_map_clockwise_button.click(binding_wait_time=binding_wait_time)
+        self._rotate_tilt_map_clockwise_button.click(wait_after_click=wait_after_click)
 
-    def click_rotate_map_counterclockwise_button(self, binding_wait_time: float = 0.5) -> None:
+    def click_rotate_map_counterclockwise_button(self, wait_after_click: float = 0.5) -> None:
         """
         Clicks the rotate counterclockwise button.
 
-        :param binding_wait_time: The amount of time (in seconds) to wait after the click before allowing code
+        :param wait_after_click: The amount of time (in seconds) to wait after the click before allowing code
             to continue.
 
         :raises TimeoutException: If the rotate counterclockwise button is not found.
         """
-        self._rotate_tilt_map_counterclockwise_button.click(binding_wait_time=binding_wait_time)
+        self._rotate_tilt_map_counterclockwise_button.click(wait_after_click=wait_after_click)
 
-    def click_tilt_map_button(self, binding_wait_time: float = 0.5) -> None:
+    def click_tilt_map_button(self, wait_after_click: float = 0.5) -> None:
         """
         Clicks the tilt control button.
 
-        :param binding_wait_time: The amount of time (in seconds) to wait after the click before allowing code
+        :param wait_after_click: The amount of time (in seconds) to wait after the click before allowing code
             to continue.
         """
-        self._tilt_map_button.click(binding_wait_time=binding_wait_time)
+        self._tilt_map_button.click(wait_after_click=wait_after_click)
 
-    def click_zoom_in_button(self, binding_wait_time: float = 0.5) -> None:
+    def click_zoom_in_button(self, wait_after_click: float = 0.5) -> None:
         """
         Clicks the zoom in button.
 
-        :param binding_wait_time: The amount of time (in seconds) to wait before allowing code to continue.
+        :param wait_after_click: The amount of time (in seconds) to wait before allowing code to continue.
         """
-        self._zoom_in_button.click(binding_wait_time=binding_wait_time)
+        self._zoom_in_button.click(wait_after_click=wait_after_click)
 
-    def click_zoom_out_button(self, binding_wait_time: float = 0.5) -> None:
+    def click_zoom_out_button(self, wait_after_click: float = 0.5) -> None:
         """
         Clicks the zoom out button.
 
-        :param binding_wait_time: The amount of time (in seconds) to wait after the click before allowing code
+        :param wait_after_click: The amount of time (in seconds) to wait after the click before allowing code
             to continue.
         """
-        self._zoom_out_button.click(binding_wait_time=binding_wait_time)
+        self._zoom_out_button.click(wait_after_click=wait_after_click)
 
     def close_all_expanded_popups(self) -> None:
         """
         Closes all general popups such as popups from markers, KML, and clickable icons.
         The list is reversed before iterating to close popups in the highest z-order first.
         """
-        all_general_popups = self._general_close_popup_button.find_all(wait_timeout=0)
+        all_general_popups = self._general_close_popup_button.find_all(timeout=0)
         all_general_popups.reverse()
         for close_popup_button in all_general_popups:
             close_popup_button.click()
@@ -450,7 +452,7 @@ class GoogleMap(BasicPerspectiveComponent):
         :returns: True if the button is found, False otherwise.
         """
         try:
-            return self._dismiss_overlay_button.find(wait_timeout=0).is_displayed()
+            return self._dismiss_overlay_button.find(timeout=0).is_displayed()
         except TimeoutException:
             return False
 
@@ -462,7 +464,7 @@ class GoogleMap(BasicPerspectiveComponent):
         :param y_offset: The y offset in pixels to move the cursor to after locating the component.
         """
         ActionChains(driver=self.driver)\
-            .move_to_element_with_offset(to_element=self.find(wait_timeout=0), xoffset=x_offset, yoffset=y_offset)\
+            .move_to_element_with_offset(to_element=self.find(timeout=0), xoffset=x_offset, yoffset=y_offset)\
             .double_click()\
             .perform()
 
@@ -474,7 +476,7 @@ class GoogleMap(BasicPerspectiveComponent):
         :param y_offset: The y offset in pixels to move the cursor to after locating the component.
         """
         ActionChains(driver=self.driver)\
-            .move_to_element_with_offset(to_element=self.find(wait_timeout=0), xoffset=x_offset, yoffset=y_offset)\
+            .move_to_element_with_offset(to_element=self.find(timeout=0), xoffset=x_offset, yoffset=y_offset)\
             .context_click()\
             .context_click()\
             .perform()
@@ -509,7 +511,7 @@ class GoogleMap(BasicPerspectiveComponent):
                 from toe
         center = re.search(
             '(?<=ll=)(.*)(?=&z)',
-            self._external_link.find(wait_timeout=0).get_attribute('href')).group().split(',')
+            self._external_link.find(timeout=0).get_attribute('href')).group().split(',')
         return GeographicPoint(latitude=float(center[0]), longitude=float(center[1]))
 
     def get_map_type(self) -> Union[MapType, MapSubtype]:
@@ -551,7 +553,7 @@ class GoogleMap(BasicPerspectiveComponent):
         :returns: The number of all open general popups.
         """
         try:
-            return len(self._general_close_popup_button.find_all(wait_timeout=0))
+            return len(self._general_close_popup_button.find_all(timeout=0))
         except TimeoutException:
             return 0
 
@@ -647,7 +649,7 @@ class GoogleMap(BasicPerspectiveComponent):
 
         :returns: True if the zoom in button is enabled, False otherwise.
         """
-        return self._zoom_in_button.find(wait_timeout=0).is_enabled()
+        return self._zoom_in_button.find(timeout=0).is_enabled()
 
     def zoom_out_button_is_enabled(self) -> bool:
         """
@@ -655,4 +657,4 @@ class GoogleMap(BasicPerspectiveComponent):
 
         :returns: True if the zoom out button is enabled, False otherwise.
         """
-        return self._zoom_out_button.find(wait_timeout=0).is_enabled()
+        return self._zoom_out_button.find(timeout=0).is_enabled()

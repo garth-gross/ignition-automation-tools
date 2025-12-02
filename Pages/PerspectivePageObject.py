@@ -7,7 +7,7 @@ from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support import expected_conditions as ec
 
 from Components.BasicComponent import BasicComponent, ComponentPiece
-from Components.PerspectiveComponents.Common.Icon import CommonIcon
+from Components.Common.Icon import CommonIcon
 from Helpers.CSSEnumerations import CSSPropertyValue
 from Helpers.Point import Point
 from Pages.IgnitionPageObject import IgnitionPageObject
@@ -46,26 +46,26 @@ class PerspectivePageObject(IgnitionPageObject):
                 locator=self._SEPARATOR_LOCATOR,
                 driver=driver,
                 parent_locator_list=self.locator_list,
-                wait_timeout=1)
+                timeout=1)
             self._item_coll = {}
             self._icon_coll = {}
 
         def click_item(
-                self, item_text: str, submenu_depth: Optional[int] = None, binding_wait_time: float = 0.5) -> None:
+                self, item_text: str, submenu_depth: Optional[int] = None, wait_after_click: float = 0.5) -> None:
             """
             Click an item within the context menu. For items within submenus, you must first hover over whichever other
             items would expand the submenus.
 
             :param item_text: The text of the item to click.
             :param submenu_depth: The depth of the submenu to which the item belongs.
-            :param binding_wait_time: The amount of time to wait after clicking the item before allowing code to
+            :param wait_after_click: The amount of time to wait after clicking the item before allowing code to
                 continue.
             """
             if submenu_depth is not None:
                 # For sub-menu items, we must first hover over the 0th element in that sub-menu, otherwise
                 # the sub-menu collapses as we leave our current item
                 self._get_item(submenu_depth=submenu_depth).hover()
-            self._get_item(item_text=item_text, submenu_depth=submenu_depth).click(binding_wait_time=binding_wait_time)
+            self._get_item(item_text=item_text, submenu_depth=submenu_depth).click(wait_after_click=wait_after_click)
 
         def get_path_of_expansion_icon(self, item_text: str, submenu_depth: Optional[int] = None) -> str:
             """
@@ -116,16 +116,16 @@ class PerspectivePageObject(IgnitionPageObject):
             :raises IndexError: If separators are found, but fewer than the specified index.
             """
             # allow IndexError to bubble up if encountered
-            return self._separators.find_all(wait_timeout=0)[index].get_attribute(property_name.value)
+            return self._separators.find_all(timeout=0)[index].get_attribute(property_name.value)
 
         def hover_over_item(
-                self, item_text: str, submenu_depth: Optional[int] = None, binding_wait_time: float = 0) -> None:
+                self, item_text: str, submenu_depth: Optional[int] = None, wait_after_hover: float = 0) -> None:
             """
             Hover over an item of the context menu. This is extremely important while dealing with submenus.
 
             :param item_text: The text of the item to hover over.
             :param submenu_depth: The depth of the item which will be hovered over.
-            :param binding_wait_time: The amount of time after hovering over the item to wait before allowing code to
+            :param wait_after_hover: The amount of time after hovering over the item to wait before allowing code to
                 continue.
             """
             if submenu_depth is not None:
@@ -135,7 +135,7 @@ class PerspectivePageObject(IgnitionPageObject):
             self._get_item(item_text=item_text, submenu_depth=submenu_depth).hover()
             self._get_item(
                 item_text=item_text,
-                submenu_depth=submenu_depth).wait_on_binding(time_to_wait=binding_wait_time)
+                submenu_depth=submenu_depth).wait_some_time(time_to_wait=wait_after_hover)
 
         def is_displayed(self) -> bool:
             """
@@ -144,7 +144,7 @@ class PerspectivePageObject(IgnitionPageObject):
             :return: True, if a context menu is displayed on the current Page - False otherwise.
             """
             try:
-                return self.find(wait_timeout=0) is not None
+                return self.find(timeout=0) is not None
             except TimeoutException:
                 return False
 
@@ -159,7 +159,7 @@ class PerspectivePageObject(IgnitionPageObject):
             """
             try:
                 return self._get_icon(
-                    item_text=item_text, submenu_depth=submenu_depth).find(wait_timeout=0).is_displayed()
+                    item_text=item_text, submenu_depth=submenu_depth).find(timeout=0).is_displayed()
             except TimeoutException:
                 return False
 
@@ -174,7 +174,7 @@ class PerspectivePageObject(IgnitionPageObject):
             """
             try:
                 return self._get_expansion_icon(
-                    item_text=item_text, submenu_depth=submenu_depth).find(wait_timeout=0).is_displayed()
+                    item_text=item_text, submenu_depth=submenu_depth).find(timeout=0).is_displayed()
             except TimeoutException:
                 return False
 
@@ -191,7 +191,7 @@ class PerspectivePageObject(IgnitionPageObject):
             """
             try:
                 item = self._get_item(item_text=item_text, submenu_depth=submenu_depth)
-                return item.find(wait_timeout=0).is_displayed() and item.get_text() == item_text
+                return item.find(timeout=0).is_displayed() and item.get_text() == item_text
             except TimeoutException:
                 return False
 
@@ -209,7 +209,7 @@ class PerspectivePageObject(IgnitionPageObject):
                         submenu_depth=submenu_depth),
                     driver=self.driver,
                     parent_locator_list=None,
-                    wait_timeout=1).find(wait_timeout=0).is_displayed()
+                    timeout=1).find(timeout=0).is_displayed()
             except TimeoutException:
                 return False
 
@@ -233,7 +233,7 @@ class PerspectivePageObject(IgnitionPageObject):
                     locator=self._SUBMENU_EXPANSION_ICON_LOCATOR,
                     driver=self.driver,
                     parent_locator_list=self._get_item(item_text=item_text, submenu_depth=submenu_depth).locator_list,
-                    wait_timeout=1)
+                    timeout=1)
                 self._icon_coll[identifier] = icon
             return icon
 
@@ -257,7 +257,7 @@ class PerspectivePageObject(IgnitionPageObject):
                     locator=(By.CSS_SELECTOR, 'svg'),
                     driver=self.driver,
                     parent_locator_list=parent_locator_list,
-                    wait_timeout=1)
+                    timeout=1)
                 self._icon_coll[identifier] = icon
             return icon
 
@@ -283,7 +283,7 @@ class PerspectivePageObject(IgnitionPageObject):
                     locator=(By.CSS_SELECTOR, f'{self._ITEM_LOCATOR[1]}{label_piece}'),
                     driver=self.driver,
                     parent_locator_list=parent_locator_list,
-                    wait_timeout=1)
+                    timeout=1)
                 self._item_coll[identifier] = item
             return item
 
@@ -299,7 +299,7 @@ class PerspectivePageObject(IgnitionPageObject):
             primary_view_resource_path: str = None,
             primary_locator: Tuple = None,
             configured_tab_title: str = None,
-            wait_timeout: int = 10):
+            timeout: int = 10):
         """
         :param driver: The WebDriver in use for the browser window.
         :param gateway_address: The address of the Gateway this page belongs to.
@@ -307,7 +307,7 @@ class PerspectivePageObject(IgnitionPageObject):
         :param primary_view_resource_path: The path of the primary View in use for this Page.
         :param primary_locator: A tuple which describes an element unique to this Page.
         :param configured_tab_title: The title configured for this tab.
-        :param wait_timeout: The amount of time (in seconds) to implicitly wait.
+        :param timeout: The amount of time (in seconds) to implicitly wait.
         """
         self._internal_page_url_path = page_config_path
         self._full_perspective_path = self._PERSPECTIVE_PATH_PREFIX + self._internal_page_url_path
@@ -316,7 +316,7 @@ class PerspectivePageObject(IgnitionPageObject):
             gateway_address=gateway_address,
             destination_path=self._full_perspective_path,
             primary_locator=primary_locator,
-            wait_timeout=wait_timeout)
+            timeout=timeout)
         self.app_bar = AppBar(driver=driver)
         self._primary_view_resource_path = primary_view_resource_path
         self.configured_page_title = configured_tab_title
@@ -324,16 +324,16 @@ class PerspectivePageObject(IgnitionPageObject):
             driver=driver)
 
     def click_item_of_component_context_menu(
-            self, item_text: str, submenu_depth: Optional[int] = None, binding_wait_time: float = 0.5) -> None:
+            self, item_text: str, submenu_depth: Optional[int] = None, wait_after_click: float = 0.5) -> None:
         """
         Click an item within the context menu displayed on the Page.
         :param item_text: The text of the item you wish to click.
         :param submenu_depth: The depth of the submenu to query for.
-        :param binding_wait_time: The amount of time to wait after clicking the specified item before allowing code to
+        :param wait_after_click: The amount of time to wait after clicking the specified item before allowing code to
             continue.
         """
         self._component_context_menu.click_item(
-            item_text=item_text, submenu_depth=submenu_depth, binding_wait_time=binding_wait_time)
+            item_text=item_text, submenu_depth=submenu_depth, wait_after_click=wait_after_click)
 
     def component_context_menu_is_displayed(self) -> bool:
         """
@@ -483,17 +483,17 @@ class PerspectivePageObject(IgnitionPageObject):
         return self._component_context_menu.get_computed_width(include_units=include_units)
 
     def hover_over_item_of_component_context_menu(
-            self, item_text: str, submenu_depth: Optional[int] = None, binding_wait_time: float = 0) -> None:
+            self, item_text: str, submenu_depth: Optional[int] = None, wait_after_hover: float = 0) -> None:
         """
         Hover over an item of the context menu. This is extremely important while dealing with submenus.
 
         :param item_text: The text of the item to hover over.
         :param submenu_depth: The depth of the item which will be hovered over.
-        :param binding_wait_time: The amount of time after hovering over the item to wait before allowing code to
+        :param wait_after_hover: The amount of time after hovering over the item to wait before allowing code to
             continue.
         """
         self._component_context_menu.hover_over_item(
-            item_text=item_text, submenu_depth=submenu_depth, binding_wait_time=binding_wait_time)
+            item_text=item_text, submenu_depth=submenu_depth, wait_after_hover=wait_after_hover)
 
     def item_in_component_context_menu_contains_icon(self, item_text: str, submenu_depth: Optional[int] = None) -> bool:
         """

@@ -1,13 +1,14 @@
 from typing import Optional, List, Tuple, Union
-from Helpers.IAExpectedConditions import IAExpectedConditions as IAec
+
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support import expected_conditions as ec
 
 from Components.BasicComponent import BasicPerspectiveComponent, ComponentPiece
-from Components.PerspectiveComponents.Common.Icon import CommonIcon
+from Components.Common.Icon import CommonIcon
 from Helpers.CSSEnumerations import CSS, CSSPropertyValue
+from Helpers.IAExpectedConditions import IAExpectedConditions as IAec
 
 
 class Carousel(BasicPerspectiveComponent):
@@ -24,24 +25,26 @@ class Carousel(BasicPerspectiveComponent):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 2,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 2,
             description: Optional[str] = None,
-            poll_freq: float = 0.5):
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
         super().__init__(
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
-            poll_freq=poll_freq)
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
         self._arrows = ComponentPiece(
             locator=self._ARROW_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=poll_freq)
         self._dot_coll = {}
         self._dot_icon_coll = {}
@@ -49,19 +52,19 @@ class Carousel(BasicPerspectiveComponent):
             locator=self._DOT_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=poll_freq)
         self._active_dot = ComponentPiece(
             locator=self._ACTIVE_DOT_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=poll_freq)
         self._view_containers = ComponentPiece(
             locator=self._VIEW_CONTAINER_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=poll_freq)
 
     def arrows_are_displayed(self) -> bool:
@@ -104,8 +107,7 @@ class Carousel(BasicPerspectiveComponent):
         """
         Click the 'next' arrow in order to transition to the next slide.
 
-        :param transition_speed: The amount of time to wait while the Carousel goes through its transition. Synonymous
-            with binding_wait_time.
+        :param transition_speed: The amount of time to wait while the Carousel goes through its transition.
 
         :raises TimeoutException: If no arrows are found.
         :raises IndexError: If only 1 arrow is found? Should never happen unless a user hides the next arrow through
@@ -118,16 +120,15 @@ class Carousel(BasicPerspectiveComponent):
         except TimeoutException:
             pass
         # We have to perform a wait due to a FireFox issue not clicking the next arrow button.
-        self.wait_on_binding(time_to_wait=0.25)
+        self.wait_some_time(time_to_wait=0.25)
         self._arrows.find_all()[1].click()
-        self._arrows.wait_on_binding(time_to_wait=transition_speed)
+        self._arrows.wait_some_time(time_to_wait=transition_speed)
 
     def click_previous_arrow(self, transition_speed: int = 1) -> None:
         """
         Click the 'previous' arrow in order to transition to the previous slide.
 
-        :param transition_speed: The amount of time to wait while the Carousel goes through its transition. Synonymous
-            with binding_wait_time.
+        :param transition_speed: The amount of time to wait while the Carousel goes through its transition.
 
         :raises TimeoutException: If no arrows are found.
         :raises IndexError: If only 1 arrow is found? Should never happen unless a user hides the previous arrow through
@@ -140,9 +141,9 @@ class Carousel(BasicPerspectiveComponent):
         except TimeoutException:
             pass
         # We have to perform a wait due to a FireFox issue not clicking the previous arrow button.
-        self.wait_on_binding(time_to_wait=0.25)
+        self.wait_some_time(time_to_wait=0.25)
         self._arrows.find_all()[0].click()
-        self._arrows.wait_on_binding(time_to_wait=transition_speed)
+        self._arrows.wait_some_time(time_to_wait=transition_speed)
 
     def get_index_of_next_slide(self, current_index: Optional[int] = None) -> int:
         """
@@ -233,7 +234,7 @@ class Carousel(BasicPerspectiveComponent):
         Obtain the count of rendered dots of the Carousel.
         """
         try:
-            return len(self._dots.find_all(wait_timeout=0))
+            return len(self._dots.find_all(timeout=0))
         except TimeoutException:
             return 0
 
@@ -283,27 +284,27 @@ class Carousel(BasicPerspectiveComponent):
         """
         return "disabled" not in self._arrows.find_all()[1].get_attribute("class")
 
-    def pause_by_hovering(self, binding_wait_time: float = 1) -> None:
+    def pause_by_hovering(self, wait_after_hover: float = 1) -> None:
         """
         Attempt to pause the Carousel by hovering the mouse over the Component. Note that this function only has any
         effect if the Carousel is configured to pause while a user hovers over it.
 
-        :param binding_wait_time: How long (in seconds) to wait after hovering over the component before allowing code
+        :param wait_after_hover: How long (in seconds) to wait after hovering over the component before allowing code
             to continue.
         """
         self.hover()
-        self.wait_on_binding(time_to_wait=binding_wait_time)
+        self.wait_some_time(time_to_wait=wait_after_hover)
 
-    def pause_by_hovering_on_dots(self, binding_wait_time: float = 1) -> None:
+    def pause_by_hovering_on_dots(self, wait_after_hover: float = 1) -> None:
         """
         Attempt to pause the Carousel by hovering the mouse over the dots of the Carousel. Note that this function only
         has any effect if the Carousel is configured to pause while a user hovers over the dots of the Carousel.
 
-        :param binding_wait_time: How long (in seconds) to wait after hovering over the component before allowing code
+        :param wait_after_hover: How long (in seconds) to wait after hovering over the component before allowing code
             to continue.
         """
         self._dots.hover()
-        self._dots.wait_on_binding(time_to_wait=binding_wait_time)
+        self._dots.wait_some_time(time_to_wait=wait_after_hover)
 
     def previous_arrow_is_enabled(self) -> bool:
         """
@@ -333,7 +334,7 @@ class Carousel(BasicPerspectiveComponent):
         try:
             self._get_dot(
                 zero_based_index=self.get_index_of_next_slide(
-                    current_index=original_index), must_be_active=True).find(wait_timeout=time_to_wait)
+                    current_index=original_index), must_be_active=True).find(timeout=time_to_wait)
         except TimeoutException:
             pass
         return self.get_current_index_from_dots()
@@ -354,7 +355,7 @@ class Carousel(BasicPerspectiveComponent):
         try:
             self._get_dot(
                 zero_based_index=self.determine_index_of_previous_slide(
-                    current_index=original_index), must_be_active=True).find(wait_timeout=time_to_wait)
+                    current_index=original_index), must_be_active=True).find(timeout=time_to_wait)
         except TimeoutException:
             pass
         return self.get_current_index_from_dots()
@@ -373,7 +374,7 @@ class Carousel(BasicPerspectiveComponent):
                 locator=(By.CSS_SELECTOR, f'{locator}[data-index="{zero_based_index}"]'),
                 driver=self.driver,
                 parent_locator_list=self.locator_list,
-                wait_timeout=1,
+                timeout=1,
                 poll_freq=self.poll_freq)
             self._dot_coll[(zero_based_index, must_be_active)] = dot
         return dot
@@ -391,7 +392,7 @@ class Carousel(BasicPerspectiveComponent):
                 driver=self.driver,
                 parent_locator_list=self._get_dot(
                     zero_based_index=zero_based_index).locator_list,
-                wait_timeout=1,
+                timeout=1,
                 poll_freq=self.poll_freq)
             self._dot_icon_coll[zero_based_index] = icon
         return icon

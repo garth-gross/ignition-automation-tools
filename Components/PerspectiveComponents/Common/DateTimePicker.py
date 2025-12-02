@@ -224,17 +224,17 @@ class CommonDateTimePicker(ComponentPiece):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: List[Tuple[By, str]],
-            wait_timeout: float = 1,
+            parent_locator_list: List[Tuple[Union[By, str], str]],
+            timeout: float = 1,
             description: Optional[str] = None,
             poll_freq: float = 0.5):
         super().__init__(
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
             poll_freq=poll_freq)
         self._next_month_chevron = ComponentPiece(
@@ -290,19 +290,39 @@ class CommonDateTimePicker(ComponentPiece):
             driver=driver,
             parent_locator_list=self.locator_list,
             poll_freq=poll_freq)
+        self.previous_second_chevron = ComponentPiece(
+            locator=self._PREVIOUS_SECOND_SPINNER_LOCATOR,
+            driver=driver,
+            parent_locator_list=self.locator_list,
+            poll_freq=poll_freq)
         self.previous_minute_chevron = ComponentPiece(
             locator=self._PREVIOUS_MINUTE_SPINNER_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
             poll_freq=poll_freq)
         self._hours_input = CommonTextInput(
-            locator=self._HOURS_INPUT_LOCATOR, driver=driver, parent_locator_list=parent_locator_list, wait_timeout=1)
+            locator=self._HOURS_INPUT_LOCATOR,
+            driver=driver,
+            parent_locator_list=parent_locator_list,
+            timeout=1,
+            description="The hours input field of the DateTimePicker. This piece of the component is only displayed "
+                        "while a format which include hours is in use.")
         self._minutes_input = CommonTextInput(
-            locator=self._MINUTES_INPUT_LOCATOR, driver=driver, parent_locator_list=parent_locator_list, wait_timeout=1)
+            locator=self._MINUTES_INPUT_LOCATOR,
+            driver=driver,
+            parent_locator_list=parent_locator_list,
+            timeout=1,
+            description="The minutes input field of the DateTimePicker. This piece of the component is only displayed "
+                        "while a format which include minutes is in use.")
         self._seconds_input = CommonTextInput(
-            locator=self._SECONDS_INPUT_LOCATOR, driver=driver, parent_locator_list=parent_locator_list, wait_timeout=1)
+            locator=self._SECONDS_INPUT_LOCATOR,
+            driver=driver,
+            parent_locator_list=parent_locator_list,
+            timeout=1,
+            description="The seconds input field of the DateTimePicker. This piece of the component is only displayed "
+                        "while a format which include seconds is in use.")
         self._am_pm_picker = ComponentPiece(
-            locator=self._AM_PM_PICKER_LOCATOR, driver=driver, parent_locator_list=parent_locator_list, wait_timeout=1)
+            locator=self._AM_PM_PICKER_LOCATOR, driver=driver, parent_locator_list=parent_locator_list, timeout=1)
         self._selected_days = ComponentPiece(
             locator=self._SELECTED_DAYS_SELECTOR, driver=driver, parent_locator_list=self.locator_list)
 
@@ -331,13 +351,19 @@ class CommonDateTimePicker(ComponentPiece):
         """
         return [int(_.text) for _ in self._enabled_days.find_all()]
 
-    def get_hours(self) -> int:
+    def get_hours(self) -> Optional[int]:
         """
         Obtain the current numeric hour selection.
 
+        :returns: The current hours value of the picker, or None if the DateTimePicker is not formatted to
+            display seconds.
+
         :raises TimeoutException: If the current format is preventing the display of the hours input.
         """
-        return int(self._hours_input.find().get_attribute("value"))
+        try:
+            return int(self._hours_input.find().get_attribute("value"))
+        except TimeoutException:
+            return None
 
     def get_list_of_available_months(self) -> List[str]:
         """
@@ -359,13 +385,19 @@ class CommonDateTimePicker(ComponentPiece):
         enabled_options = list(filter(lambda e: e.is_enabled(), all_options))
         return [int(option.text) for option in enabled_options]
 
-    def get_minutes(self) -> int:
+    def get_minutes(self) -> Optional[int]:
         """
         Obtain the current minute value in use by the picker.
 
+        :returns: The current minutes value of the picker, or None if the DateTimePicker is not formatted to
+            display seconds.
+
         :raises TimeoutException: If the current format is preventing the display of the minutes input.
         """
-        return int(self._minutes_input.find().get_attribute("value"))
+        try:
+            return int(self._minutes_input.find().get_attribute("value"))
+        except TimeoutException:
+            return None
 
     def get_selected_days(self) -> List[int]:
         """
@@ -532,10 +564,10 @@ class CommonDateTimePicker(ComponentPiece):
         if seconds is not None:
             current_seconds = int(self.get_seconds())
             if self._seconds_input.find().is_enabled():
-                target = self.previous_minute_chevron if int(seconds) < int(current_seconds) else \
+                target = self.previous_second_chevron if int(seconds) < int(current_seconds) else \
                     self.next_second_chevron
                 while current_seconds != int(seconds):
-                    target.click(binding_wait_time=0.5)
+                    target.click(wait_after_click=0.5)
                     new_seconds = int(self.get_seconds())
                     if new_seconds != current_seconds:
                         current_seconds = new_seconds
@@ -554,7 +586,7 @@ class CommonDateTimePicker(ComponentPiece):
                 target = self.previous_minute_chevron if int(minutes) < int(current_minutes) else \
                     self.next_minute_chevron
                 while current_minutes != int(minutes):
-                    target.click(binding_wait_time=0.5)
+                    target.click(wait_after_click=0.5)
                     new_minutes = int(self.get_minutes())
                     if new_minutes != current_minutes:
                         current_minutes = new_minutes

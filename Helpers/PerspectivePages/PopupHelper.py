@@ -22,9 +22,9 @@ class PopupHelper:
             locator=self._GENERIC_POPUP_LOCATOR,
             driver=driver,
             description="A generic definition of a Popup.",
-            wait_timeout=0)  # no parent
+            timeout=0)  # no parent
         self._modal = ComponentPiece(
-            locator=self._MODAL_LOCATOR, driver=driver, parent_locator_list=None, wait_timeout=0)
+            locator=self._MODAL_LOCATOR, driver=driver, parent_locator_list=None, timeout=0)
 
     def close_all_popups(self) -> None:
         """
@@ -35,7 +35,7 @@ class PopupHelper:
         """
         # find all popups
         try:
-            list_of_popups = self._generic_popup.find_all(wait_timeout=1)
+            list_of_popups = self._generic_popup.find_all(timeout=1)
             # now sort them so the "highest" is first.
             popups_sorted_by_z_index = sorted(
                 list_of_popups, key=lambda e: e.value_of_css_property(CSS.Z_INDEX.value), reverse=True)
@@ -57,7 +57,7 @@ class PopupHelper:
         :returns: A count of how many Popups are currently displayed.
         """
         try:
-            return len(self._generic_popup.find_all(wait_timeout=0))
+            return len(self._generic_popup.find_all(timeout=0))
         except TimeoutException:
             return 0
 
@@ -68,6 +68,6 @@ class PopupHelper:
         :returns: True, if any Popup is displaying as a modal - False otherwise.
         """
         try:
-            return self._modal.find(wait_timeout=0) is not None
+            return self._modal.find(timeout=0) is not None
         except TimeoutException:
             return False

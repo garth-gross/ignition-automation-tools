@@ -1,8 +1,7 @@
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import Union, List, Tuple, Optional
 
-from selenium.common.exceptions import StaleElementReferenceException
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import StaleElementReferenceException, TimeoutException
 from selenium.webdriver import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -16,12 +15,14 @@ from Components.PerspectiveComponents.Common.DateRangeSelector import \
     CommonDateRangeSelector, DateRangeSelectorTab, DateRangeSelectorTimeUnit, HistoricalRange, PerspectiveDate
 from Components.PerspectiveComponents.Common.Table import Table as CommonTable
 from Components.PerspectiveComponents.Common.TagBrowseTree import CommonTagBrowseTree
+from Components.PerspectiveComponents.Common.Tree import Item
 from Components.PerspectiveComponents.Inputs.TextField import TextField
 from Helpers.CSSEnumerations import CSS, CSSPropertyValue
 from Helpers.IAAssert import IAAssert
 from Helpers.IAExpectedConditions import IAExpectedConditions as IAec
 from Helpers.IAExpectedConditions.IAExpectedConditions import TextCondition
 from Helpers.IASelenium import IASelenium
+from Helpers.Ignition.Tag import Tag, Folder
 
 
 class OptionBarButton(Enum):
@@ -35,7 +36,7 @@ class OptionBarButton(Enum):
     MORE = "more"
 
 
-class PenControlColumn(Enum):
+class PenControlColumn(StrEnum):
     """An enumeration of the available Pen Control columns."""
     AVERAGE = "average"
     AXIS = "axis"
@@ -46,7 +47,7 @@ class PenControlColumn(Enum):
     X_TRACE = "xTrace"
 
 
-class RangeBrushColumn(Enum):
+class RangeBrushColumn(StrEnum):
     """An enumeration of the available Range Brush columns."""
     AVERAGE = "average"
     DELTA = "delta"
@@ -61,12 +62,98 @@ class RangeBrushColumn(Enum):
     UCL = "ucl"
 
 
-class Tab(Enum):
+class Tab(StrEnum):
     """An enumeration of the available Tabs within the settings panel."""
     AXES = "Axes"
     COLUMNS = "Columns"
     PENS = "Pens"
     PLOTS = "Plots"
+
+
+class HistoricalTag(Tag):
+    """
+    A HistoricalTag is essentially just a regular tag where we enforce that a historical provider must be supplied. It
+    is not included within the Tag Helper because only Perspective PowerCharts make use of this sort of Tag.
+    """
+
+    def __init__(self, name: str, path: str, historical_provider: str, gateway_name: str, provider: str = "[default]"):
+        """
+        These values are most easily derived while examining an item within the Tag Browse Tree of the PowerChart.
+
+        Assuming a displayed item in the Tag Browse Tree with the following structure...
+
+        MyHistoricalProvider
+        L_ GatewayName:TagProvider
+            L_ DirectoryA
+                L_ DirectoryB
+                    L_ MyTag
+
+        name: "MyTag"
+        path: "DirectoryA/DirectoryB"
+        historical_provider: "MyHistoricalProvider"
+        gateway_name: "GatewayName"
+        provider: "TagProvider", although "[TagProvider]" may also be supplied and handled.
+
+        :param name: The name of your Tag.
+        :param path: The slash-delimited path to reach your Tag.
+        :param historical_provider: The History Provider for your Tag.
+        :param gateway_name: The Gateway name in use by the Gateway that contains the provider this Tag belongs to.
+        :param provider: The name of the provider this Tag belongs to.
+        """
+        Tag.__init__(self, name=name, path=path, provider=provider)
+        self.history_provider = historical_provider
+        self.gateway_name = gateway_name
+        # now override/replace the full path computed by Tag.__init__()
+        self._full_path = f'{self.history_provider}/' \
+                          f'{self.gateway_name}:{self.get_provider().replace("[", "").replace("]", "")}/' \
+                          f'{self.get_path()}/' \
+                          f'{self.get_name()}'
+
+    def __str__(self):
+        return self._full_path
+
+
+class HistoricalFolder(Folder):
+    """
+    A HistoricalFolder is essentially just a regular Folder where we enforce that a historical provider must be
+    supplied. It is not included within the Tag Helper because only Perspective PowerCharts make use of this sort
+    of Folder.
+    """
+
+    def __init__(self, name: str, path: str, historical_provider: str, gateway_name: str, provider: str = "[default]"):
+        """
+        These values are most easily derived while examining an item within the Tag Browse Tree of the PowerChart.
+
+        Assuming a displayed item (Folder) in the Tag Browse Tree with the following structure...
+
+        MyHistoricalProvider
+        L_ GatewayName:TagProvider
+            L_ DirectoryA
+                L_ DirectoryB
+
+        name: "DirectoryB"
+        path: "DirectoryA"
+        historical_provider: "MyHistoricalProvider"
+        gateway_name: "GatewayName"
+        provider: "TagProvider", although "[TagProvider]" may also be supplied and handled.
+
+        :param name: The name of your Folder.
+        :param path: The slash-delimited path to reach your Folder.
+        :param historical_provider: The History Provider for your Folder.
+        :param gateway_name: The Gateway name in use by the Gateway that contains the provider this Folder belongs to.
+        :param provider: The name of the provider this Folder belongs to.
+        """
+        Folder.__init__(self, name=name, path=path, provider=provider)
+        self.history_provider = historical_provider
+        self.gateway_name = gateway_name
+        # now override/replace the full path computed by Folder.__init__()
+        self._full_path = f'{self.history_provider}/' \
+                          f'{self.gateway_name}:{self.get_provider().replace("[", "").replace("]", "")}/' \
+                          f'{self.get_path()}/' \
+                          f'{self.get_name()}'
+
+    def __str__(self):
+        return self._full_path
 
 
 class PowerChart(BasicPerspectiveComponent):
@@ -77,7 +164,7 @@ class PowerChart(BasicPerspectiveComponent):
 
         def __init__(
                 self,
-                parent_locator_list: List[Tuple[By, str]],
+                parent_locator_list: List[Tuple[Union[By, str], str]],
                 driver: WebDriver,
                 description: Optional[str] = None,
                 poll_freq: float = 0.5):
@@ -113,7 +200,7 @@ class PowerChart(BasicPerspectiveComponent):
 
         def __init__(
                 self,
-                parent_locator_list: List[Tuple[By, str]],
+                parent_locator_list: List[Tuple[Union[By, str], str]],
                 driver: WebDriver,
                 description: Optional[str] = None,
                 poll_freq: float = 0.5):
@@ -185,7 +272,7 @@ class PowerChart(BasicPerspectiveComponent):
             """
             try:
                 # each graphed pen has 2 <path> elements
-                return int(len(self._line_paths.find_all(wait_timeout=1)) / 2)
+                return int(len(self._line_paths.find_all(timeout=1)) / 2)
             except TimeoutException:
                 return 0
 
@@ -251,7 +338,7 @@ class PowerChart(BasicPerspectiveComponent):
                 return self._time_axis_labels.get_css_property(property_name=property_name)
             except TimeoutException as toe:
                 raise TimeoutException(msg="No labels are present for the X (time) axis.") from toe
-        
+
         def get_y_axis_html_class(self) -> str:
             """
             Obtain the HTML class of the Y axis.
@@ -307,7 +394,7 @@ class PowerChart(BasicPerspectiveComponent):
                 .move_by_offset(xoffset=x_offset, yoffset=y_offset) \
                 .release() \
                 .perform()
-            self.wait_on_binding(time_to_wait=1)
+            self.wait_some_time(time_to_wait=1)
 
         def get_count_of_x_axis_grid_lines(self, _already_attempted=False) -> int:
             """
@@ -321,12 +408,6 @@ class PowerChart(BasicPerspectiveComponent):
                 return len(self._x_axis_grid_line.find_all())
             except TimeoutException:
                 return 0
-            except StaleElementReferenceException as sere:
-                if not _already_attempted:
-                    return self.get_count_of_x_axis_grid_lines(
-                        _already_attempted=True)
-                else:
-                    raise sere
 
         def get_count_of_y_axis_grid_lines(self, _already_attempted=False) -> int:
             """
@@ -340,12 +421,6 @@ class PowerChart(BasicPerspectiveComponent):
                 return len(self._y_axis_grid_line.find_all())
             except TimeoutException:
                 return 0
-            except StaleElementReferenceException as sere:
-                if not _already_attempted:
-                    return self.get_count_of_y_axis_grid_lines(
-                        _already_attempted=True)
-                else:
-                    raise sere
 
         def get_css_property_from_x_axis_grid(self, property_name: Union[CSSPropertyValue, str]) -> str:
             """
@@ -359,8 +434,6 @@ class PowerChart(BasicPerspectiveComponent):
             """
             try:
                 return self._x_axis_grid_line.get_css_property(property_name=property_name)
-            except StaleElementReferenceException:
-                return self.get_css_property_from_x_axis_grid(property_name=property_name)
             except TimeoutException as toe:
                 raise TimeoutException(
                     msg="No grid line was found for the X axis.") from toe
@@ -377,9 +450,6 @@ class PowerChart(BasicPerspectiveComponent):
             """
             try:
                 return self._y_axis_grid_line.get_css_property(property_name=property_name)
-            except StaleElementReferenceException:
-                return self.get_css_property_from_y_axis_grid(
-                    property_name=property_name)
             except TimeoutException as toe:
                 raise TimeoutException(
                     msg="No grid line was found for the Y axis.") from toe
@@ -425,7 +495,7 @@ class PowerChart(BasicPerspectiveComponent):
 
         def __init__(
                 self,
-                parent_locator_list: List[Tuple[By, str]],
+                parent_locator_list: List[Tuple[Union[By, str], str]],
                 driver: WebDriver,
                 poll_freq: float = 0.5):
             super().__init__(
@@ -752,7 +822,7 @@ class PowerChart(BasicPerspectiveComponent):
 
         def __init__(
                 self,
-                parent_locator_list: List[Tuple[By, str]],
+                parent_locator_list: List[Tuple[Union[By, str], str]],
                 driver: WebDriver,
                 poll_freq: float = 0.5):
             super().__init__(
@@ -979,7 +1049,7 @@ class PowerChart(BasicPerspectiveComponent):
             """
             self._normal_state_stroke_color_dropdown.click()
 
-        def click_tab(self, tab: Tab) -> None:
+        def click_tab(self, tab: Union[Tab, str]) -> None:
             """
             Click a tab of the Settings panel. Requires that the Settings panel already be open.
 
@@ -987,11 +1057,11 @@ class PowerChart(BasicPerspectiveComponent):
 
             :raises TimeoutException: If the supplied tab is not present.
             """
-            self._tab.set_locator(new_locator=(By.ID, f"{self._TAB_ID_GENERIC_STRING}{tab.value.lower()}"))
+            self._tab.set_locator(new_locator=(By.ID, f"{self._TAB_ID_GENERIC_STRING}{tab.lower()}"))
             self._tab.click()
             IAAssert.is_true(
                 value=self.tab_is_active(tab=tab),
-                failure_msg=f"Failed to select the {tab.value} tab.")
+                failure_msg=f"Failed to select the {tab} tab.")
 
         def close_settings_panel(self) -> None:
             """
@@ -1146,7 +1216,7 @@ class PowerChart(BasicPerspectiveComponent):
             :returns: True, if the Settings panel is currently open/displayed/expanded - False otherwise.
             """
             try:
-                return self.find(wait_timeout=1).is_displayed() and "expanded" in self.find().get_attribute("class")
+                return self.find(timeout=1).is_displayed() and "expanded" in self.find().get_attribute("class")
             except TimeoutException:
                 return False
 
@@ -1157,13 +1227,13 @@ class PowerChart(BasicPerspectiveComponent):
             :returns: True, if the inputs used to edit a pen are currently displayed - False otherwise.
             """
             try:
-                return self._update_pen_name_input_field.find(wait_timeout=1) is not None
+                return self._update_pen_name_input_field.find(timeout=1) is not None
             except TimeoutException:
                 return False
 
         def set_pen_control_column_display_state_in_settings_panel(
                 self,
-                pen_control_column: PenControlColumn,
+                pen_control_column: Union[PenControlColumn, str],
                 should_be_displayed: bool) -> None:
             """
             Set the display state of a column within the pen control table. Requires the Settings panel already be
@@ -1178,7 +1248,7 @@ class PowerChart(BasicPerspectiveComponent):
             self.click_tab(tab=Tab.COLUMNS)
             self._pen_control_column_checkbox.set_locator(
                 new_locator=(
-                    By.ID, f"ia_powerChartComponent__settings__columnsTab__penControl.{pen_control_column.value}"))
+                    By.ID, f"ia_powerChartComponent__settings__columnsTab__penControl.{pen_control_column}"))
             self._special_checkbox_handling(
                 checkbox_component_piece=self._pen_control_column_checkbox, should_be_selected=should_be_displayed)
 
@@ -1326,7 +1396,7 @@ class PowerChart(BasicPerspectiveComponent):
                 expected_value=hex_desired_color,
                 failure_msg="Failed to modify the stroke of the pen while editing in the Settings panel.")
 
-        def tab_is_active(self, tab: Tab) -> bool:
+        def tab_is_active(self, tab: Union[Tab, str]) -> bool:
             """
             Determine if a tab is actively in use.
 
@@ -1337,27 +1407,27 @@ class PowerChart(BasicPerspectiveComponent):
             raises TimeoutException: If the Settings panel is not already open, or if the Settings panel is not
                 currently on the main tabbed layout section.
             """
-            return self._active_tab.find().get_attribute(name="data-category") == tab.value.lower()
+            return self._active_tab.find().get_attribute(name="data-category") == tab.lower()
 
-        def _get_range_brush_checkbox(self, range_brush_column: RangeBrushColumn) -> ComponentPiece:
+        def _get_range_brush_checkbox(self, range_brush_column: Union[RangeBrushColumn, str]) -> ComponentPiece:
             """
             Obtain a checkbox from the range brush section of the Columns tab.
 
             :param range_brush_column: The column for which you would like the checkbox.
             """
-            _checkbox = self._range_brush_column_checkboxes.get(range_brush_column.value)
+            _checkbox = self._range_brush_column_checkboxes.get(range_brush_column)
             if not _checkbox:
                 _checkbox = ComponentPiece(
                     locator=(
                         By.ID,
-                        f"ia_powerChartComponent__settings__columnsTab__rangeSelection.{range_brush_column.value}"),
+                        f"ia_powerChartComponent__settings__columnsTab__rangeSelection.{range_brush_column}"),
                     driver=self.driver,
                     parent_locator_list=self.locator_list,
-                    description=f"The {range_brush_column.value} checkbox within the Range Brush section of the "
+                    description=f"The {range_brush_column} checkbox within the Range Brush section of the "
                                 f"Columns tab of the Settings Panel.",
                     poll_freq=self.poll_freq
                 )
-                self._range_brush_column_checkboxes[range_brush_column.value] = _checkbox
+                self._range_brush_column_checkboxes[range_brush_column] = _checkbox
             return _checkbox
 
         def _get_pen_visibility_checkbox(self, pen_name: str) -> ComponentPiece:
@@ -1510,7 +1580,7 @@ class PowerChart(BasicPerspectiveComponent):
 
         def __init__(
                 self,
-                parent_locator_list: List[Tuple[By, str]],
+                parent_locator_list: List[Tuple[Union[By, str], str]],
                 driver: WebDriver,
                 poll_freq: float = 0.5):
             super().__init__(
@@ -1613,7 +1683,7 @@ class PowerChart(BasicPerspectiveComponent):
                 filter(
                     lambda e: e.text == pen_name,
                     self._pen_labels.find_all(
-                        wait_timeout=1)))[0]
+                        timeout=1)))[0]
             IASelenium(
                 driver=self.driver).hover_over_web_element(
                 web_element=pen_label_web_element)
@@ -1749,8 +1819,8 @@ class PowerChart(BasicPerspectiveComponent):
                 return False
 
         def _get_pen_control_table_column(
-                self, pen_control_column: Union[PenControlColumn, RangeBrushColumn]):
-            pen_control_column = pen_control_column.value
+                self, pen_control_column: Union[PenControlColumn, RangeBrushColumn, str]):
+            pen_control_column = pen_control_column
             _column = self._pen_control_columns.get(pen_control_column)
             if not _column:
                 _column = ComponentPiece(
@@ -1795,7 +1865,7 @@ class PowerChart(BasicPerspectiveComponent):
             """
             try:
                 pen_label_web_element = list(filter(
-                    lambda e: e.text == pen_name, self._pen_labels.find_all(wait_timeout=1)))[0]
+                    lambda e: e.text == pen_name, self._pen_labels.find_all(timeout=1)))[0]
                 IASelenium(driver=self.driver).hover_over_web_element(web_element=pen_label_web_element)
                 self._delete_pen_icon.set_locator(new_locator=(By.CSS_SELECTOR, "div.tr.hovering svg.delete-pen-icon"))
                 self._delete_pen_icon.click()
@@ -1838,11 +1908,11 @@ class PowerChart(BasicPerspectiveComponent):
             """
             try:
                 self._collapse_icon.click()
-                self._expand_icon.find(wait_timeout=1)
+                self._expand_icon.find(timeout=1)
             except TimeoutException:
                 try:
                     self._expand_icon.click()
-                    self._collapse_icon.find(wait_timeout=1)
+                    self._collapse_icon.find(timeout=1)
                 except TimeoutException as toe:
                     raise TimeoutException(
                         msg=f'Pen table collapse/expand icons could not be located for interaction.') from toe
@@ -1859,7 +1929,7 @@ class PowerChart(BasicPerspectiveComponent):
 
         def __init__(
                 self,
-                parent_locator_list: List[Tuple[By, str]],
+                parent_locator_list: List[Tuple[Union[By, str], str]],
                 driver: WebDriver,
                 poll_freq: float = 0.5):
             super().__init__(
@@ -1889,32 +1959,32 @@ class PowerChart(BasicPerspectiveComponent):
                             "Chart.",
                 poll_freq=poll_freq)
 
-        def add_tags_to_chart(self, tag_paths: [str]) -> None:
+        def add_tags_to_chart(self, tags: List[HistoricalTag]) -> None:
             """
             Add tags to the Power Chart. Requires the Tag Browse Tree already be expanded. If all specified tags are
             already graphed, no action is taken, and the Tag Browse Tree will remain expanded.
 
-            :param tag_paths: A list of tag paths which describe the tags to add to the Power Chart graph as pens.
+            :param tags: A list of Historical Tags which describe the tags to add to the Power Chart
+            graph as pens.
 
             :raises TimeoutException: If any of the supplied paths does not map to a tag, or if the Tag Browse Tree is
                 not present/expanded.
             """
-            for tag_path in tag_paths:
-                tag_name = self._split_item_label_path(tag_path)[-1]
-                self._expand_tag_browser_tree_by_path(path=tag_path)
+            for tag in tags:
+                self.expand_to_item(item=self._item_from_tag(tag=tag))
                 try:
                     WebDriverWait(driver=self.driver, timeout=5).until(
                         IAec.function_returns_true(
                             custom_function=self._select_tag_to_be_added_later,
-                            function_args={"tag_name": tag_name}))
+                            function_args={"tag": tag}))
                 except TimeoutException as toe:
-                    raise TimeoutException(msg=f"No tag found with a name of '{tag_name}'.") from toe
+                    raise TimeoutException(msg=f"No tag found with a path of '{tag}'.") from toe
                 # wait for Apply button to become enabled
                 WebDriverWait(driver=self.driver, timeout=1).until(IAec.function_returns_true(
                     custom_function=self._add_tag_button.is_enabled, function_args={}))
                 if self._add_tag_button.is_enabled():
                     # tag might already be displayed in the chart, so we might not need to add it
-                    self._add_tag_button.click(binding_wait_time=1)
+                    self._add_tag_button.click(wait_after_click=1)
 
         def click_reload_icon(self) -> None:
             """
@@ -1922,7 +1992,7 @@ class PowerChart(BasicPerspectiveComponent):
 
             :raises TimeoutException: If the Tag Browse Tree is not expanded in the Power Chart.
             """
-            self._reload_icon.click(binding_wait_time=1)
+            self._reload_icon.click(wait_after_click=1)
 
         def collapse_if_expanded(self) -> None:
             """
@@ -1955,63 +2025,75 @@ class PowerChart(BasicPerspectiveComponent):
             :returns: True, if the tag Browse Tree is currently expanded - False otherwise.
             """
             try:
-                return 'expanded' in self.find(wait_timeout=1).get_attribute('class')
+                return 'expanded' in self.find(timeout=1).get_attribute('class')
             except TimeoutException:
                 return False
 
-        def _expand_tag_browser_tree_by_path(self, path: str) -> None:
+        def _expand_tag_browser_tree(self, tag: Union[HistoricalTag, HistoricalFolder]) -> None:
             """
-            Expand the Tag Browse Tree structure based on a supplied tag path.
+            Expand the Tag Browse Tree structure based on a supplied Historical Tag. Does NOT click the tag/folder.
 
-            :param path: The path of a Tag as a slash-delimited string.
+            :param tag: The Historical Tag (or Folder) to expand to.
             """
-            path_nodes = self._split_item_label_path(path)
-            for i in path_nodes:
+            path_nodes = tag.get_full_path().split("/")
+            item = None
+            for path_piece in path_nodes:
                 try:
-                    if self.item_label_exists_in_tree(item_label=i) and \
-                            not self.item_is_expanded(item_label=i) \
-                            and (path_nodes.index(i) != len(path_nodes)-1):
-                        folder_index = self._get_index_of_item_in_tree(item_label=i)
-                        self._folder_icons.find_all()[folder_index].click()
-                        self.wait_on_binding(time_to_wait=1)
-                        WebDriverWait(driver=self.driver, timeout=3, poll_frequency=self.poll_freq).until(
-                            IAec.function_returns_true(
-                                custom_function=self.item_is_expanded,
-                                function_args={'item_label': i}))
+                    item = Item(label_text=path_piece, parent=item)
+                    self.set_expansion_state(item=item, should_be_expanded=True)
+                    WebDriverWait(driver=self.driver, timeout=3, poll_frequency=self.poll_freq).until(
+                        IAec.function_returns_true(
+                            custom_function=self.item_is_expanded,
+                            function_args={'item': item}))
                 except TimeoutException as toe:
                     raise TimeoutException(
                         msg=f"Tag browser tree might not have expanded as expected.\nCheck that the provided "
-                            f"path \'{path}\' is correct.") from toe
+                            f"path \'{item}\' is correct.") from toe
 
-        def _select_tag_to_be_added_later(self, tag_name: str) -> bool:
+        @staticmethod
+        def _item_from_tag(tag: Union[Tag, Folder]) -> Item:
             """
-            Select a singular tag for later addition to the Power Chart.
+            We need to build the "linked-list" of Items from the start of the Tag's (or Folder's) full path.
+            """
+            pieces = tag.get_full_path().split("/")  # The PowerChart must NOT split on the provider.
+            item = Item(label_text=pieces.pop(0))
+            while len(pieces) > 0:
+                piece = pieces.pop(0)
+                if len(piece) > 0:
+                    item = Item(label_text=piece, parent=item)
+            return item
 
-            :param tag_name: The name of the tag to select now, for later addition to the Power Chart graph.
+        def _select_tag_to_be_added_later(self, tag: HistoricalTag) -> bool:
+            """
+            Select a singular Tag for later addition to the Power Chart.
+
+            :param tag: The Historical Tag to select now, for later addition to the Power Chart graph.
 
             :returns: True, if the supplied tag name was selected successfully - False otherwise.
             """
             try:
-                self.click_item_label(item_label=tag_name)
+                self.click_item(item=self._item_from_tag(tag=tag))
                 return True
             except TimeoutException:
                 return False
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 10,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 10,
             description: Optional[str] = None,
-            poll_freq: float = 0.5):
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
         super().__init__(
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
-            poll_freq=poll_freq)
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
         self._footer = self._PowerChartFooter(
             parent_locator_list=self.locator_list, driver=driver, poll_freq=poll_freq)
         self._graph = self._PowerChartGraph(
@@ -2025,21 +2107,21 @@ class PowerChart(BasicPerspectiveComponent):
         self._tag_browser = self._PowerChartTagBrowser(
             parent_locator_list=self.locator_list, driver=driver, poll_freq=poll_freq)
 
-    def add_tags_to_chart(self, tag_paths: [str]) -> None:
+    def add_tags_to_chart(self, tags: List[HistoricalTag]) -> None:
         """
-        Add tags to the chart to be graphed as pens. This function will expand the Tag Browser if it is not already
+        Add Tags to the chart to be graphed as pens. This function will expand the Tag Browser if it is not already
         expanded, and will leave the Tag Browser expansion state as it was before this function was invoked.
 
-        :param tag_paths: A list containing the full tag paths of each tag to add.
+        :param tags: A list of all the Historical Tags to add to the Power Chart.
 
-        :raises TimeoutException: If the Tag Browser button is not present, or if any supplied tag path does not
+        :raises TimeoutException: If the Tag Browser button is not present, or if any supplied Historical Tag does not
             identify a Tag to be added.
         """
         _original_state = self._tag_browser.tag_browser_is_expanded()
         if not _original_state:
             self._header.click_tag_browser_button()
-        self._tag_browser.add_tags_to_chart(tag_paths=tag_paths)
-        self.wait_on_binding(time_to_wait=2)  # wait for tags to be graphed
+        self._tag_browser.add_tags_to_chart(tags=tags)
+        self.wait_some_time(time_to_wait=2)  # wait for tags to be graphed
         if not _original_state:
             self._tag_browser.collapse_if_expanded()
 

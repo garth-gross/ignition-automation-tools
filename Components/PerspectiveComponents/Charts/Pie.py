@@ -1,4 +1,4 @@
-from typing import Tuple, Optional, List
+from typing import Tuple, Optional, List, Union
 
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver.common.by import By
@@ -18,45 +18,47 @@ class Pie(BasicPerspectiveComponent):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 10,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 10,
             description: Optional[str] = None,
-            poll_freq: float = 0.5):
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
         super().__init__(
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
-            poll_freq=poll_freq)
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
         self._sections = ComponentPiece(
             locator=self._SECTION_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=1,
+            timeout=1,
             description="The actual slices of the Pie.",
             poll_freq=poll_freq)
         self._title = ComponentPiece(
             locator=self._TITLE_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=1,
+            timeout=1,
             description="The title of the Pie Chart.",
             poll_freq=poll_freq)
         self._legend_container = ComponentPiece(
             locator=self._LEGEND_CONTAINER_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=1,
+            timeout=1,
             description="The Legend of the Pie Chart.",
             poll_freq=poll_freq)
         self._checkboxes = ComponentPiece(
             locator=self._CHECKBOX_LOCATOR,
             driver=driver,
-            parent_locator_list=self._legend_container.locator_list,
-            wait_timeout=1,
+            parent_locator_list=self.locator_list,
+            timeout=1,
             description="The checkboxes within the legend of the Pie Chart.",
             poll_freq=poll_freq)
 
@@ -143,7 +145,7 @@ class Pie(BasicPerspectiveComponent):
             locator=(By.CSS_SELECTOR, 'g[aria-label="Series"] > g > g:nth-child(5)'),
             driver=self.driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=self.poll_freq)
         try:
             return len(sections.find_all()[0].find_elements(By.CSS_SELECTOR, 'tspan')) > 0

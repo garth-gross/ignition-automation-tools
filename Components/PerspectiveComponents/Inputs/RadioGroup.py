@@ -1,12 +1,12 @@
 from enum import Enum
-from typing import Tuple, List, Optional
+from typing import Tuple, List, Optional, Union
 
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
 
 from Components.BasicComponent import BasicPerspectiveComponent, ComponentPiece
-from Components.PerspectiveComponents.Common.Icon import CommonIcon
+from Components.Common.Icon import CommonIcon
 
 
 class RadioGroup(BasicPerspectiveComponent):
@@ -31,41 +31,43 @@ class RadioGroup(BasicPerspectiveComponent):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 2,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 2,
             description: Optional[str] = None,
-            poll_freq: float = 0.5):
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
         super().__init__(
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
-            poll_freq=poll_freq)
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
         self._radio_group_form = ComponentPiece(
             locator=self._RADIO_GROUP_FORM_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=1)
+            timeout=1)
         self._internal_radio_group_label_text = ComponentPiece(
             locator=self._INTERNAL_RADIO_GROUP_LABEL_TEXT_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=1)
+            timeout=1)
         self._radio_group_button_value = ComponentPiece(
             locator=self._RADIO_GROUP_BUTTON_VALUE_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=1)
+            timeout=1)
         self._radio_wrapper_coll = {}
         self._input_coll = {}
         self._icon_coll = {}
         self._label_coll = {}
 
     def click_radio_button(
-            self, button_text: str = None, button_value: str = None, binding_wait_time: float = 2) -> None:
+            self, button_text: str = None, button_value: str = None, wait_after_click: float = 2) -> None:
         """
         Click a Radio Button by supplying either the text of the Radio button or the value of the Radio button. The
         actual click will occur on the label for the Radio button.
@@ -73,11 +75,11 @@ class RadioGroup(BasicPerspectiveComponent):
         :param button_text: The text of the Radio button you would like to click. If multiple radio buttons have the
             same exact text the first match will be clicked. Takes precedence over button_value.
         :param button_value: The value of the Radio button you would like to click.
-        :param binding_wait_time: The amount of time after any click event before we allow code to continue.
+        :param wait_after_click: The amount of time after any click event before we allow code to continue.
 
         :raises TimeoutException: If no Radio button with the provided text or value is present.
         """
-        self._get_label(button_text=button_text, button_value=button_value).click(binding_wait_time=binding_wait_time)
+        self._get_label(button_text=button_text, button_value=button_value).click(wait_after_click=wait_after_click)
 
     def get_count_of_radio_buttons_in_group(self) -> int:
         """Get a count of buttons within the Radio Group."""

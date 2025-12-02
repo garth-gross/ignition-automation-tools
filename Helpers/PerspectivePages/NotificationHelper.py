@@ -26,43 +26,43 @@ class NotificationHelper:
             locator=self._NOTIFICATION_LOCATOR,
             driver=driver,
             description="A generic notification, used primarily for determining presence.",
-            wait_timeout=0)
+            timeout=0)
         self._close_icon = ComponentPiece(
             locator=self._CLOSE_ICON_LOCATOR,
             driver=driver,
             parent_locator_list=self._notifications.locator_list,
             description="The 'X' icon in the upper-right of notifications which allow for dismissal.",
-            wait_timeout=0)
+            timeout=0)
         self._body = ComponentPiece(
             locator=self._BODY_LOCATOR,
             driver=driver,
             parent_locator_list=self._notifications.locator_list,
             description="The body of the Notification, where the details and summary reside.",
-            wait_timeout=0)
+            timeout=0)
         self._icon = ComponentPiece(
             locator=self._ICON_LOCATOR,
             driver=driver,
             parent_locator_list=self._body.locator_list,
             description="The icon on the left-hand side of the Notification.",
-            wait_timeout=0)
+            timeout=0)
         self._summary = ComponentPiece(
             locator=self._SUMMARY_LOCATOR,
             driver=driver,
             parent_locator_list=self._body.locator_list,
             description="The summary (short description) of what the Notification is in regard to.",
-            wait_timeout=0)
+            timeout=0)
         self._details = ComponentPiece(
             locator=self._DETAILS_LOCATOR,
             driver=driver,
             parent_locator_list=self._body.locator_list,
             description="The in-depth details of the Notification.",
-            wait_timeout=0)
+            timeout=0)
         self._action_item = ComponentPiece(
             locator=self._ACTION_ITEM_LOCATOR,
             driver=driver,
             parent_locator_list=self._notifications.locator_list,
             description="The interactive piece of the Notification, used to reset or ignore the Notification.",
-            wait_timeout=0
+            timeout=0
         )
 
     def any_notification_is_visible(self) -> bool:
@@ -83,7 +83,7 @@ class NotificationHelper:
         :raises TimeoutException: If any of the Notifications does not allow for dismissal.
         """
         while self.any_notification_is_visible():
-            self._close_icon.click(binding_wait_time=1)  # glorified sleep
+            self._close_icon.click(wait_after_click=1)  # glorified sleep
 
     def get_count_of_current_notifications(self) -> int:
         """
@@ -92,7 +92,7 @@ class NotificationHelper:
         :returns: A count of the number of displayed Notifications.
         """
         try:
-            return len(self._notifications.find_all(wait_timeout=0))
+            return len(self._notifications.find_all(timeout=0))
         except TimeoutException:
             return 0
 
@@ -106,7 +106,7 @@ class NotificationHelper:
 
         :raises IndexError: If the supplied index is invalid based on the number of displayed notifications.
         """
-        return self._details.find_all(wait_timeout=0)[notification_index].text
+        return self._details.find_all(timeout=0)[notification_index].text
 
     def get_details_color(self, notification_index: int = 0) -> str:
         """
@@ -119,7 +119,7 @@ class NotificationHelper:
 
         :raises IndexError: If the supplied index is invalid based on the number of displayed notifications.
         """
-        return self._details.find_all(wait_timeout=0)[notification_index].value_of_css_property(CSS.COLOR.value)
+        return self._details.find_all(timeout=0)[notification_index].value_of_css_property(CSS.COLOR.value)
 
     def get_icon_color(self, notification_index: int = 0) -> str:
         """
@@ -132,7 +132,7 @@ class NotificationHelper:
 
         :raises IndexError: If the supplied index is invalid based on the number of displayed notifications.
         """
-        return self._icon.find_all(wait_timeout=0)[notification_index].value_of_css_property(CSS.FILL.value)
+        return self._icon.find_all(timeout=0)[notification_index].value_of_css_property(CSS.FILL.value)
 
     def get_icon_id(self, notification_index: int = 0) -> str:
         """
@@ -145,7 +145,7 @@ class NotificationHelper:
         :raises IndexError: If the supplied index is invalid based on the number of displayed notifications.
         """
         return self._icon.find_all(
-            wait_timeout=0)[notification_index].find_element(By.TAG_NAME, "symbol").get_attribute("id")
+            timeout=0)[notification_index].get_attribute("class")
 
     def get_summary(self, notification_index: int = 0) -> str:
         """
@@ -157,7 +157,7 @@ class NotificationHelper:
 
         :raises IndexError: If the supplied index is invalid based on the number of displayed notifications.
         """
-        return self._summary.find_all(wait_timeout=0)[notification_index].text
+        return self._summary.find_all(timeout=0)[notification_index].text
 
     def get_summary_color(self, notification_index: int = 0) -> str:
         """
@@ -170,7 +170,7 @@ class NotificationHelper:
 
         :raises IndexError: If the supplied index is invalid based on the number of displayed notifications.
         """
-        return self._summary.find_all(wait_timeout=0)[notification_index].value_of_css_property(CSS.COLOR.value)
+        return self._summary.find_all(timeout=0)[notification_index].value_of_css_property(CSS.COLOR.value)
 
     def click_notification_action(self, notification_index: int = 0) -> None:
         """
@@ -181,4 +181,4 @@ class NotificationHelper:
         :raises IndexError: If the supplied index is invalid based on the number of displayed notifications.
         """
         self._notifications.find_all(
-            wait_timeout=0)[notification_index].find_element(*self._ACTION_ITEM_LOCATOR).click()
+            timeout=0)[notification_index].find_element(*self._ACTION_ITEM_LOCATOR).click()

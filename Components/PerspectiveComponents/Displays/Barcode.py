@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
@@ -16,19 +16,21 @@ class Barcode(BasicPerspectiveComponent):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 2,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 2,
             description: Optional[str] = None,
-            poll_freq: float = 0.5):
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
         super().__init__(
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
-            poll_freq=poll_freq)
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
         self._barcode_value = ComponentPiece(
             locator=self._VALUE_LOCATOR,
             driver=driver,
@@ -57,7 +59,7 @@ class Barcode(BasicPerspectiveComponent):
         :returns: True, if the Barcode Component is currently displaying any value - False otherwise.
         """
         try:
-            return self._barcode_value.find(wait_timeout=0) is not None
+            return self._barcode_value.find(timeout=0) is not None
         except TimeoutException:
             return False
 
@@ -81,7 +83,7 @@ class Barcode(BasicPerspectiveComponent):
         :returns: True, if the Barcode Component is currently in an error state - False otherwise.
         """
         try:
-            return self._barcode_error_state.find(wait_timeout=0) is not None
+            return self._barcode_error_state.find(timeout=0) is not None
         except TimeoutException:
             return False
 

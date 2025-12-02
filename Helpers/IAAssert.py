@@ -67,7 +67,7 @@ class IAAssert:
             if as_type == Color:
                 # Color only accepts a tuple constructor, which throws a wrench into our previous casting.
                 assert IAAssert._color_convert(color_as_string=actual_value) ==\
-                       IAAssert._color_convert(color_as_string=expected_value),\
+                       IAAssert._color_convert(color_as_string=expected_value), \
                        IAAssert._generate_failure_msg(
                            msg=f'Assert {IAAssert._color_convert(color_as_string=actual_value)} == '
                                f'{IAAssert._color_convert(color_as_string=expected_value)} -> '
@@ -252,18 +252,18 @@ class IAAssert:
             if as_type == Color:
                 # special handling for color comparisons
                 assert IAAssert._color_convert(color_as_string=actual_value) \
-                       != IAAssert._color_convert(color_as_string=expected_value),\
+                       != IAAssert._color_convert(color_as_string=expected_value), \
                        IAAssert._generate_failure_msg(
                            msg=f'Assert {IAAssert._color_convert(color_as_string=actual_value)} != '
                                f'{IAAssert._color_convert(color_as_string=expected_value)}.',
                            failure_msg=failure_msg)
             else:
-                assert as_type(actual_value) != as_type(expected_value),\
+                assert as_type(actual_value) != as_type(expected_value), \
                     IAAssert._generate_failure_msg(msg=f'Assert {as_type(actual_value)} != '
                                                        f'{as_type(expected_value)}',
                                                    failure_msg=failure_msg)
         else:
-            assert actual_value != expected_value,\
+            assert actual_value != expected_value, \
                 IAAssert._generate_failure_msg(msg=f'Assert {actual_value} != {expected_value}',
                                                failure_msg=failure_msg)
 
@@ -349,7 +349,7 @@ class IAAssert:
             return Color.from_string(color_as_string).hex
 
     @classmethod
-    def _generate_failure_msg(cls, msg: str, failure_msg: str) -> str:
+    def _generate_failure_msg(cls, msg: str, failure_msg: Optional[str] = None) -> str:
         """Convenience function to concatenate and pretty-print failure messages to a defined assertion message."""
         return msg if not failure_msg else msg + '\nMessage: ' + failure_msg
 

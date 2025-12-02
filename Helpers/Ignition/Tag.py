@@ -2,7 +2,7 @@ import copy
 import json
 import re
 from enum import Enum
-from typing import List, Dict, Optional, Union
+from typing import List, Dict, Optional
 
 from Helpers.Ignition.Alarm import AlarmHelper, AlarmDefinition
 
@@ -53,7 +53,7 @@ class _BaseTag(object):
         self._path = path
         self._provider = f'{provider}'
         self._base_path = f'{self._provider}{path}'
-        self._full_path = f'{self._base_path}{name}' if self._path == '' else f'{self._base_path}/{name}'
+        self._full_path = f'{self._base_path}{"/" if self._base_path != self._provider else ""}{name}'
         self.tag_type = None
         self.access_rights = None
         self.alarm_eval_enabled = None
@@ -215,15 +215,21 @@ class _BaseTag(object):
 
 class Tag(_BaseTag):
     """
-    The Tag class allows for easy storage and reference of Tag attributes. This class does not perform as a Tag, only
-    storing information for later reference.
+    The Tag class allows for easy storage and reference of Tag attributes. This class does not perform as a Tag - it
+    only stores information for later reference.
     """
     def __init__(self, name: str, path: str, provider: str = '[default]'):
+        """
+        :param name: The name of the Tag.
+        :param path: The slash-delimited folder structure between the provider and the Tag.
+        :param provider: The name of the provider of this Tag
+        """
         super().__init__(
             name=name,
             path=path,
             provider=provider)
         self.tag_type = 'AtomicTag'
+        self.default_value = None
         self.value_source = ValueSource.MEMORY
 
     def get_alarm(self, alarm_name: str) -> AlarmDefinition:
@@ -390,6 +396,12 @@ class UdtDef(_ComplexTag):
 
 class Folder(_ComplexTag):
     def __init__(self, name: str, path: str, provider: str = '[default]'):
+        """
+        :param name: The name of the Folder.
+        :param path: The slash-delimited path between the provider and the Folder. Supply an empty string if the Folder
+            is a top-level folder.
+        :param provider: The provider the Folder exists in.
+        """
         super().__init__(
             name=name,
             path=path,

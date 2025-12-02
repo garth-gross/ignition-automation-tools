@@ -10,6 +10,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.remote.webdriver import WebDriver, WebElement
 from selenium.webdriver.support.wait import WebDriverWait
 
+from Helpers import CSSEnumerations
 from Helpers.Formatting import FilePathFormatting
 from Helpers.IAExpectedConditions import IAExpectedConditions as IAec
 
@@ -73,7 +74,8 @@ class IASelenium:
         Close any browser tabs which are not the 0th tab, and then switch to the 0th tab.
         """
         while self.get_tab_count() > 1:
-            self.switch_to_tab_by_index(zero_based_index=1)
+            max_tab = self.get_tab_count() - 1
+            self.switch_to_tab_by_index(zero_based_index=max_tab)
             self.close_current_tab()
         self.switch_to_tab_by_index(zero_based_index=0)
 
@@ -220,19 +222,31 @@ class IASelenium:
         finally:
             self.enable_context_menu()
 
-    def scroll_to_element(self, web_element: WebElement, align_to_top: bool = True) -> WebElement:
+    def scroll_to_element(
+            self,
+            web_element: WebElement,
+            behavior: CSSEnumerations.CSS.Behavior = CSSEnumerations.CSS.Behavior.AUTO,
+            block: CSSEnumerations.CSS.Block = CSSEnumerations.CSS.Block.START,
+            inline: CSSEnumerations.CSS.Inline = CSSEnumerations.CSS.Inline.NEAREST) -> WebElement:
         """
         Scroll to a WebElement.
 
+        :param inline: The CSS 'inline' setting to apply to the WebElement.
+        :param block: The CSS 'block' setting to apply to the WebElement.
+        :param behavior: The CSS 'behavior' setting to apply to the WebElement.
         :param web_element: The WebElement to scroll to.
-        :param align_to_top: If True, page will attempt to scroll such that the WebElement will have its top edge
-            touching the top of the viewport. If False, the page will attempt to scroll such that the WebElement will
-            have its bottom edge touching the bottom of the viewport.
+
+        For more information about the available settings, see:
+        https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoView
 
         :returns: The supplied WebElement, to allow for chaining.
         """
-        align_string = str(align_to_top).lower()
-        self.driver.execute_script('arguments[0].scrollIntoView(' + align_string + ');', web_element)
+        self.driver.execute_script(
+            'arguments[0].scrollIntoView({behavior: "' +
+            str(behavior) + '", block: "' +
+            str(block) + '", inline: "' +
+            str(inline) + '"});',
+            web_element)
         return web_element
 
     def scroll_to_element_with_settings(
@@ -342,7 +356,7 @@ class IASelenium:
         screenshot_folder = f'{os.getcwd()}/{directory}'
         if not os.path.exists(screenshot_folder):
             os.mkdir(screenshot_folder)
-        safe_path = FilePathFormatting.system_safe_file_path(screenshot_folder, screenshot_title)
+        safe_path = FilePathFormatting.system_safe_file_path(f'{screenshot_folder}/{screenshot_title}')
         self.driver.save_screenshot(safe_path)
         self.logger.info(msg=f'Screenshot taken: {safe_path}')
         return safe_path
@@ -365,7 +379,7 @@ class IASelenium:
         screenshot_folder = f'{os.getcwd()}/{directory}'
         if not os.path.exists(screenshot_folder):
             os.mkdir(screenshot_folder)
-        safe_path = FilePathFormatting.system_safe_file_path(screenshot_folder, screenshot_title)
+        safe_path = FilePathFormatting.system_safe_file_path(f'{screenshot_folder}/{screenshot_title}')
         print(f'Screenshot path: \'{safe_path}\'')
         self.driver.save_screenshot(safe_path)
         return safe_path

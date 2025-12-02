@@ -15,18 +15,19 @@ class DateTimePicker(CommonDateTimePicker, BasicPerspectiveComponent):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 2,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 2,
             description: Optional[str] = None,
-            poll_freq: float = 0.5):
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
         CommonDateTimePicker.__init__(
             self,
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
             poll_freq=poll_freq)
         BasicPerspectiveComponent.__init__(
@@ -34,9 +35,10 @@ class DateTimePicker(CommonDateTimePicker, BasicPerspectiveComponent):
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
-            poll_freq=poll_freq)
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
 
     def get_selected_day(self) -> Optional[int]:
         """
@@ -58,8 +60,8 @@ class DateTimePicker(CommonDateTimePicker, BasicPerspectiveComponent):
             otherwise.
         """
         try:
-            return self._hours_input.find(wait_timeout=0) is not None and \
-                self._minutes_input.find(wait_timeout=0) is not None
+            return self._hours_input.find(timeout=0) is not None and \
+                self._minutes_input.find(timeout=0) is not None
         except TimeoutException:
             return False
 
@@ -86,16 +88,16 @@ class DateTimeInput(BasicPerspectiveComponent):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 2,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 2,
             poll_freq: float = 0.5):
         super().__init__(
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             poll_freq=poll_freq)
         # picker is in a modal
         self._picker = DateTimePicker(
@@ -103,7 +105,7 @@ class DateTimeInput(BasicPerspectiveComponent):
             driver=driver,
             parent_locator_list=ComponentModal(
                 driver=driver).locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             poll_freq=poll_freq)
         self._input = ComponentPiece(
             locator=self._INPUT_LOCATOR,
@@ -145,7 +147,7 @@ class DateTimeInput(BasicPerspectiveComponent):
         Expands the DateTime Input so that the DateTime Picker is displayed.
         """
         if not self.is_expanded() and not self.is_in_time_mode():
-            self._input.click(binding_wait_time=0.5)
+            self._input.click(wait_after_click=0.5)
 
     def get_available_months_from_dropdown(self) -> List[str]:
         """
@@ -274,7 +276,7 @@ class DateTimeInput(BasicPerspectiveComponent):
         :returns: True, if the picker is displayed
         """
         try:
-            return self._picker.find(wait_timeout=0.5) is not None
+            return self._picker.find(timeout=0.5) is not None
         except TimeoutException:
             return False
 

@@ -1,7 +1,7 @@
 import json
 from enum import Enum
 from json import JSONDecodeError
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 from selenium.common.exceptions import TimeoutException, ElementNotInteractableException
 from selenium.webdriver.common.by import By
@@ -35,17 +35,17 @@ class CommonDropdown(ComponentPiece):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
             parent_locator_list: Optional[List] = None,
-            wait_timeout: float = 2,
+            timeout: float = 2,
             description: Optional[str] = None,
             poll_freq: float = 0.5):
         super().__init__(
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
             poll_freq=poll_freq)
         self._expand_icon = ComponentPiece(
@@ -73,7 +73,7 @@ class CommonDropdown(ComponentPiece):
         Collapse the dropdown if it is already expanded. No action is taken if the dropdown is currently collapsed.
         """
         if self.is_expanded():
-            self.wait_on_binding(0.5)
+            self.wait_some_time(0.5)
             self._click_expansion_icon()
         IAAssert.is_true(
             value=self.wait_for_expansion_state(state_to_wait_on=ExpansionState.COLLAPSED),
@@ -111,7 +111,7 @@ class CommonDropdown(ComponentPiece):
         needs_to_collapse = not self.is_expanded()
         self.expand()
         try:
-            options = [option.text for option in self._available_options.find_all(wait_timeout=0.5)]
+            options = [option.text for option in self._available_options.find_all(timeout=0.5)]
         except TimeoutException:
             options = []
         if needs_to_collapse:
@@ -178,7 +178,7 @@ class CommonDropdown(ComponentPiece):
         :returns: True, if the Dropdown is currently expanded.
         """
         return (self.ACTIVE_CLASS in self.find().get_attribute("class")) \
-            and (self._options_container.find(wait_timeout=0) is not None)
+            and (self._options_container.find(timeout=0) is not None)
 
     def option_is_disabled(self, option_text: str) -> bool:
         """
@@ -224,13 +224,13 @@ class CommonDropdown(ComponentPiece):
         bottom_within_modal = option_termination.Y <= modal_termination.Y
         return visible and left_within_modal and top_within_modal and right_within_modal and bottom_within_modal
 
-    def select_option_by_text_if_not_selected(self, option_text: str, binding_wait_time: float = 0.5) -> None:
+    def select_option_by_text_if_not_selected(self, option_text: str, wait_after_click: float = 0.5) -> None:
         """
         Select an option from the Dropdown if it is not already selected. No action is taken if the supplied option is
         already selected.
 
         :param option_text: The exact text of the option to select.
-        :param binding_wait_time: The amount of time (in seconds) to wait after selecting the option before allowing
+        :param wait_after_click: The amount of time (in seconds) to wait after selecting the option before allowing
             code to continue. Ignored if the option is already selected.
 
         :raises TimeoutException: If the specified option is not present.
@@ -240,7 +240,7 @@ class CommonDropdown(ComponentPiece):
             self.scroll_to_element()
             self.expand()
             try:
-                self._get_option(option_text=option_text).click(wait_timeout=1, binding_wait_time=binding_wait_time)
+                self._get_option(option_text=option_text).click(timeout=1, wait_after_click=wait_after_click)
             except TimeoutException as toe:
                 raise TimeoutException(msg=f"Failed to locate element with text of \"{option_text}\".") from toe
             except ElementNotInteractableException as enie:
@@ -251,13 +251,13 @@ class CommonDropdown(ComponentPiece):
                         f"Container dimensions: {termination.X - origin.X} x {termination.Y - origin.Y}") from enie
         assert option_text in self.get_selected_options_as_list(), f"Failed to select option: '{option_text}'."
 
-    def wait_for_expansion_state(self, state_to_wait_on: ExpansionState, wait_timeout: float = 1) -> bool:
+    def wait_for_expansion_state(self, state_to_wait_on: ExpansionState, timeout: float = 1) -> bool:
         """
         Wait for the Dropdown to take on an expected state, before eventually returning a value which reflects whether
         the Dropdown took that state.
 
         :param state_to_wait_on: Either expanded or collapsed.
-        :param wait_timeout: The amount of time (in seconds) to potentially wait for the Dropdown to take on the
+        :param timeout: The amount of time (in seconds) to potentially wait for the Dropdown to take on the
             supplied state.
 
         :return: True, if the Dropdown eventually took the supplied state - False otherwise.
@@ -265,7 +265,7 @@ class CommonDropdown(ComponentPiece):
         exp_func = IAec.function_returns_true if state_to_wait_on == ExpansionState.EXPANDED \
             else IAec.function_returns_false
         try:
-            WebDriverWait(driver=self.driver, timeout=wait_timeout).until(
+            WebDriverWait(driver=self.driver, timeout=timeout).until(
                 exp_func(custom_function=self.is_expanded, function_args={}))
             return True
         except TimeoutException:
@@ -280,7 +280,7 @@ class CommonDropdown(ComponentPiece):
         expected_final_state = ExpansionState.COLLAPSED if self.is_expanded() else ExpansionState.EXPANDED
         self._expand_icon.click()
         IAAssert.is_true(
-            value=self.wait_for_expansion_state(state_to_wait_on=expected_final_state, wait_timeout=1),
+            value=self.wait_for_expansion_state(state_to_wait_on=expected_final_state, timeout=1),
             failure_msg="Failed to modify the expansion state of the Dropdown."
         )
 

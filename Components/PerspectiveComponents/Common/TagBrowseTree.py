@@ -1,13 +1,13 @@
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
 
 from Components.BasicComponent import BasicPerspectiveComponent, ComponentPiece
-from Components.PerspectiveComponents.Common.Icon import CommonIcon
-from Components.PerspectiveComponents.Common.Tree import CommonTree
+from Components.Common.Icon import CommonIcon
 from Components.Common.TextInput import CommonTextInput
+from Components.PerspectiveComponents.Common.Tree import CommonTree
 
 
 class CommonTagBrowseTree(CommonTree, BasicPerspectiveComponent):
@@ -17,10 +17,10 @@ class CommonTagBrowseTree(CommonTree, BasicPerspectiveComponent):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 3,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 3,
             description: Optional[str] = None,
             poll_freq: float = 0.5):
         CommonTree.__init__(
@@ -30,7 +30,7 @@ class CommonTagBrowseTree(CommonTree, BasicPerspectiveComponent):
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
             poll_freq=poll_freq)
         self._no_results = ComponentPiece(
@@ -50,13 +50,13 @@ class CommonTagBrowseTree(CommonTree, BasicPerspectiveComponent):
             poll_freq=poll_freq
         )
 
-    def click_refresh_icon(self, binding_wait_time=5) -> None:
+    def click_refresh_icon(self, wait_after_click=5) -> None:
         """
         Click the refresh icon of the Tag Browse Tree.
 
         :raises TimeoutException: If the refresh icon is not present.
         """
-        self._reload_icon.click(binding_wait_time=binding_wait_time)
+        self._reload_icon.click(wait_after_click=wait_after_click)
 
     def get_refresh_icon_path(self) -> str:
         """
@@ -66,30 +66,30 @@ class CommonTagBrowseTree(CommonTree, BasicPerspectiveComponent):
         """
         return self._reload_icon.get_icon_name()
 
-    def no_results_message_is_displayed(self, wait_timeout=5) -> bool:
+    def no_results_message_is_displayed(self, timeout=5) -> bool:
         """
         Determine if the Tag Browse Tree is currently displaying a message conveying that no results are found for the
         configured provider.
 
-        :param wait_timeout: The amount of time (in seconds) to wait for the message to appear.
+        :param timeout: The amount of time (in seconds) to wait for the message to appear.
 
         :returns: True, if the message is displayed - False otherwise.
         """
         try:
-            return self._no_results.find(wait_timeout=wait_timeout).is_displayed()
+            return self._no_results.find(timeout=timeout).is_displayed()
         except TimeoutException:
             return False
 
-    def refresh_icon_is_displayed(self, wait_timeout=5) -> bool:
+    def refresh_icon_is_displayed(self, timeout=5) -> bool:
         """
         Determine if the refresh icon is currently displayed.
 
-        :param wait_timeout: The amount of time (in seconds) to wait for the icon to appear.
+        :param timeout: The amount of time (in seconds) to wait for the icon to appear.
 
         :returns: True, if the icon is displayed - False otherwise.
         """
         try:
-            return self._reload_icon.find(wait_timeout=wait_timeout).is_displayed()
+            return self._reload_icon.find(timeout=timeout).is_displayed()
         except TimeoutException:
             return False
 
@@ -99,7 +99,7 @@ class CommonTagBrowseTree(CommonTree, BasicPerspectiveComponent):
 
         :param filter_text: The text we input to filter the tags.
         """
-        self._filter_tf.set_text(text=filter_text, binding_wait_time=0.5)
+        self._filter_tf.set_text(text=filter_text, wait_after=0.5)
 
     def filter_text_field_is_displayed(self) -> bool:
         """
@@ -108,6 +108,6 @@ class CommonTagBrowseTree(CommonTree, BasicPerspectiveComponent):
         :returns: True, if the Filter text field is displayed - False otherwise.
         """
         try:
-            return self._filter_tf.find(wait_timeout=0).is_displayed()
+            return self._filter_tf.find(timeout=0).is_displayed()
         except TimeoutException:
             return False

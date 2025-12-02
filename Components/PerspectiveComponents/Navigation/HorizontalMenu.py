@@ -1,12 +1,12 @@
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Union
 
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
 
 from Components.BasicComponent import BasicPerspectiveComponent, ComponentPiece
+from Components.Common.Icon import CommonIcon
 from Components.PerspectiveComponents.Common.ComponentModal import ComponentModal
-from Components.PerspectiveComponents.Common.Icon import CommonIcon
 from Helpers.IASelenium import IASelenium
 from Helpers.Point import Point
 
@@ -20,43 +20,45 @@ class HorizontalMenu(BasicPerspectiveComponent):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 5,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 5,
             description: Optional[str] = None,
-            poll_freq: float = 0.5):
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
         super().__init__(
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
-            poll_freq=poll_freq)
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
         self._menu_items = ComponentPiece(
             locator=self._MENU_ITEM_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=poll_freq)
         self._child_item_modal = ComponentModal(driver=driver)
         self._child_menu_items = ComponentPiece(
             locator=self._CHILD_MENU_ITEM_LOCATOR,
             driver=driver,
             parent_locator_list=self._child_item_modal.locator_list,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=poll_freq)
         self._side_scroll_areas = ComponentPiece(
             locator=self._SIDE_SCROLL_AREA_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=poll_freq)
         self._side_scroll_clickable_area = ComponentPiece(
             locator=self._SIDE_SCROLL_AREA_LOCATOR,
             driver=driver,
             parent_locator_list=self._side_scroll_areas.locator_list,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=poll_freq)
         self._menu_item_coll = {}
         self._child_item_coll = {}
@@ -141,7 +143,7 @@ class HorizontalMenu(BasicPerspectiveComponent):
         except TimeoutException:
             return False
 
-    def click_visible_base_item(self, text_of_base_item: str, binding_wait_time: float = 0) -> None:
+    def click_visible_base_item(self, text_of_base_item: str, wait_after_click: float = 0) -> None:
         """
         Click a base-level item by text.
 
@@ -161,7 +163,7 @@ class HorizontalMenu(BasicPerspectiveComponent):
                 text_of_base_item=text_of_base_item):
             raise NoSuchElementException(f'No item with text of \'{text_of_base_item}\' could be found')
         self._get_top_level_menu_item(
-            text_of_base_item=text_of_base_item).click(binding_wait_time=binding_wait_time)
+            text_of_base_item=text_of_base_item).click(wait_after_click=wait_after_click)
 
     def click_visible_child_item(self, text_of_child_item: str) -> None:
         """
@@ -260,7 +262,7 @@ class HorizontalMenu(BasicPerspectiveComponent):
                 locator=(By.CSS_SELECTOR, f'.horizontal-menu-menu-item[data-label="{text_of_child_item}"]'),
                 driver=self.driver,
                 parent_locator_list=self._child_item_modal.locator_list,
-                wait_timeout=2,
+                timeout=2,
                 poll_freq=self.poll_freq)
             self._child_item_coll[text_of_child_item] = item
         return item
@@ -275,7 +277,7 @@ class HorizontalMenu(BasicPerspectiveComponent):
                 locator=(By.CSS_SELECTOR, f'{self._MENU_ITEM_LOCATOR[1]}[data-label="{text_of_base_item}"]'),
                 driver=self.driver,
                 parent_locator_list=self.locator_list,
-                wait_timeout=2,
+                timeout=2,
                 poll_freq=self.poll_freq)
             self._menu_item_coll[text_of_base_item] = item
         return item
@@ -291,7 +293,7 @@ class HorizontalMenu(BasicPerspectiveComponent):
                 driver=self.driver,
                 parent_locator_list=self._get_child_menu_item(
                     text_of_child_item=text_of_child_item).locator_list,
-                wait_timeout=1,
+                timeout=1,
                 poll_freq=self.poll_freq)
             self._top_level_menu_item_icon_coll[text_of_child_item] = icon
         return icon
@@ -307,7 +309,7 @@ class HorizontalMenu(BasicPerspectiveComponent):
                 driver=self.driver,
                 parent_locator_list=self._get_top_level_menu_item(
                     text_of_base_item=text_of_base_item).locator_list,
-                wait_timeout=1,
+                timeout=1,
                 poll_freq=self.poll_freq)
             self._top_level_menu_item_icon_coll[text_of_base_item] = icon
         return icon

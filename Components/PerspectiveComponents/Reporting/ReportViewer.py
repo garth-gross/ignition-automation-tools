@@ -27,90 +27,92 @@ class ReportViewer(BasicPerspectiveComponent):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 2,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 2,
             description: Optional[str] = None,
-            poll_freq: float = 0.5):
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
         super().__init__(
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
-            poll_freq=poll_freq)
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
         self._contents = ComponentPiece(
             locator=self._REPORT_CONTENTS_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=poll_freq)
         self._zoom_level_select = ComponentPiece(
             locator=self._ZOOM_LEVEL_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=poll_freq)
         self._first_page_action = ComponentPiece(
             locator=self._FIRST_PAGE_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=poll_freq)
         self._previous_page_action = ComponentPiece(
             locator=self._PREVIOUS_PAGE_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=poll_freq)
         self._next_page_action = ComponentPiece(
             locator=self._NEXT_PAGE_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=poll_freq)
         self._last_page_action = ComponentPiece(
             locator=self._LAST_PAGE_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=poll_freq)
         self._current_page_action = ComponentPiece(
             locator=self._CURRENT_PAGE_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=poll_freq)
         self._total_pages_label = ComponentPiece(
             locator=self._TOTAL_PAGE_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=poll_freq)
         self._download_link = ComponentPiece(
             locator=self._DOWNLOAD_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=poll_freq)
         self._open_in_new_tab_link = ComponentPiece(
             locator=self._TAB_OPEN_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=poll_freq)
         self._message = ComponentPiece(
             locator=self._COMPONENT_MESSAGE_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=poll_freq)
         self._loading_spinner = ComponentPiece(
             locator=self._SPINNER_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=poll_freq)
 
     def click_first_page_button(self) -> None:
@@ -171,7 +173,7 @@ class ReportViewer(BasicPerspectiveComponent):
 
         :param page_number: The page you would like to type into the Report Viewer in order to view the supplied page.
         """
-        self._current_page_action.click(binding_wait_time=0.5)
+        self._current_page_action.click(wait_after_click=0.5)
         self._current_page_action.find().clear()
         self._current_page_action.find().send_keys(str(page_number))
 
@@ -224,35 +226,35 @@ class ReportViewer(BasicPerspectiveComponent):
         :raises TimeoutException: If no Component Error message is found.
         """
         self.spinner_appeared()
-        self.spinner_was_removed(wait_timeout=5)
-        return self._message.find(wait_timeout=3).text
+        self.spinner_was_removed(timeout=5)
+        return self._message.find(timeout=3).text
 
-    def spinner_appeared(self, wait_timeout: float = 2) -> bool:
+    def spinner_appeared(self, timeout: float = 2) -> bool:
         """
         Wait until the loading spinner has appeared.
 
-        :param wait_timeout: How long to wait for the spinner to appear.
+        :param timeout: How long to wait for the spinner to appear.
 
         :returns: True, once the spinner has appeared - False, if the spinner never appeared.
         """
         try:
-            return WebDriverWait(driver=self.driver, timeout=wait_timeout).until(
+            return WebDriverWait(driver=self.driver, timeout=timeout).until(
                 IAec.function_returns_true(
                     custom_function=self._spinner_appeared,
                     function_args={}))
         except TimeoutException:
             return False
 
-    def spinner_was_removed(self, wait_timeout: float = 2) -> bool:
+    def spinner_was_removed(self, timeout: float = 2) -> bool:
         """
         Wait until the loading spinner has been removed.
 
-        :param wait_timeout: How long to wait for the spinner to be removed.
+        :param timeout: How long to wait for the spinner to be removed.
 
         :returns: True, once the spinner has been removed - False, if the spinner remains in place.
         """
         try:
-            return WebDriverWait(driver=self.driver, timeout=wait_timeout).until(
+            return WebDriverWait(driver=self.driver, timeout=timeout).until(
                 IAec.function_returns_true(
                     custom_function=self._spinner_disappeared,
                     function_args={}))
@@ -277,7 +279,7 @@ class ReportViewer(BasicPerspectiveComponent):
         :returns: True, if the spinner is no longer present - False if the spinner remains in place.
         """
         try:
-            return self._loading_spinner.find(wait_timeout=0) is None
+            return self._loading_spinner.find(timeout=0) is None
         except TimeoutException:
             return True
 
@@ -288,21 +290,21 @@ class ReportViewer(BasicPerspectiveComponent):
         :returns: True, if the spinner is displayed - False otherwise.
         """
         try:
-            return self._loading_spinner.find(wait_timeout=0).is_displayed()
+            return self._loading_spinner.find(timeout=0).is_displayed()
         except TimeoutException:
             return False
 
-    def _report_content_is_not_empty(self, wait_timeout: float = 3) -> bool:
+    def _report_content_is_not_empty(self, timeout: float = 3) -> bool:
         """
         Waits until the Report Viewer is displaying any content other than the spinner.
 
-        :param wait_timeout: The amount of time to wait for the Report Viewer to display any report content.
+        :param timeout: The amount of time to wait for the Report Viewer to display any report content.
 
         :returns: True if the Report Viewer is displaying any content before the specified wait period has lapsed -
             False otherwise.
         """
         try:
-            report_contents = WebDriverWait(driver=self.driver, timeout=wait_timeout).until(
+            report_contents = WebDriverWait(driver=self.driver, timeout=timeout).until(
                 ec.presence_of_element_located(
                     self._REPORT_CONTENTS_LOCATOR)).get_attribute('innerHTML')
             return report_contents is not None and len(report_contents) > 0

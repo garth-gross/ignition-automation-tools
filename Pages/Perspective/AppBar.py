@@ -1,3 +1,5 @@
+import math
+import re
 from enum import Enum
 from time import sleep
 from typing import Optional
@@ -9,11 +11,12 @@ from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.wait import WebDriverWait
 
 from Components.BasicComponent import ComponentPiece
-from Components.PerspectiveComponents.Common.Icon import CommonIcon
+from Components.Common.Icon import CommonIcon
 from Helpers.CSSEnumerations import CSSPropertyValue
 from Helpers.Filtering import Items
 from Helpers.IAAssert import IAAssert
 from Helpers.IAExpectedConditions import IAExpectedConditions as IAec
+from Helpers.IASelenium import IASelenium
 from Pages.PagePiece import PagePiece
 
 
@@ -34,7 +37,6 @@ class AppBar(PagePiece):
 
     _ANIMATION_DELAY_IN_SECONDS = 1.5
     _ABOUT_BUTTON_LOCATOR = (By.CSS_SELECTOR, "div svg.about-icon")
-    _ABOUT_BUTTON_LOCAL_SYMBOL_LOCATOR = (By.CSS_SELECTOR, "symbol")
     _GATEWAY_PANEL_LOCATOR = (By.ID, 'gateway-nav')
     _PROJECT_PANEL_LOCATOR = (By.ID, 'project-nav')
     _EXIT_PROJECT_LOCATOR = (By.CSS_SELECTOR, '.exit-project-icon')
@@ -66,6 +68,8 @@ class AppBar(PagePiece):
     _GATEWAY_URL_LABEL_LOCATOR = (By.CSS_SELECTOR, f"div.gateway-url .{_DETAIL_DATA_CLASS}")
     _SESSION_ID_LABEL_LOCATOR = (By.CSS_SELECTOR, f"div.session-id .{_DETAIL_DATA_CLASS}")
     _PAGE_ID_LABEL_LOCATOR = (By.CSS_SELECTOR, f"div.page-id .{_DETAIL_DATA_CLASS}")
+    _PAGE_STATS_LOCATOR = (By.CSS_SELECTOR, "div.page-stats div.left")
+    _VALUE_LABELS_LOCATOR = (By.CSS_SELECTOR, "div.page-stats div.value-label")
     _PROJECT_NAME_LABEL_LOCATOR = (By.CSS_SELECTOR, "div.project-page h4")
     _UPDATE_STATUS_LOCATOR = (By.CSS_SELECTOR, 'div.update-status')
     _LEARN_MORE_BUTTON_LOCATOR = (By.CSS_SELECTOR, "a.visit-site-link")
@@ -75,211 +79,219 @@ class AppBar(PagePiece):
 
     def __init__(self, driver: WebDriver):
         super().__init__(driver=driver, primary_locator=self._APP_BAR_WRAPPER_LOCATOR)
+        self.selenium = IASelenium(driver=self.driver)
         self._animation_wait = WebDriverWait(driver=driver, timeout=self._ANIMATION_DELAY_IN_SECONDS)
         self._about_button = CommonIcon(
             locator=self._ABOUT_BUTTON_LOCATOR,
             driver=driver,
             description="The button at the extreme left of the expanded App Bar, which opens an info modal.",
-            wait_timeout=0)
-        self._about_button_local_symbol = ComponentPiece(
-            locator=self._ABOUT_BUTTON_LOCAL_SYMBOL_LOCATOR,
-            driver=driver,
-            parent_locator_list=self._about_button.locator_list,
-            description="The icon used within the 'About' button within the expanded App Bar.",
-            wait_timeout=0)
+            timeout=0)
         self._about_panel = ComponentPiece(
             locator=self._ABOUT_MODAL_AND_SESSION_STATUS_MODAL_LOCATOR,
             driver=driver,
             parent_locator_list=None,
             description="The modal displayed which either displays info regarding Ignition, or a configured custom "
                         "View.",
-            wait_timeout=0)
+            timeout=0)
         self._about_modal_and_session_status_modal_title = ComponentPiece(
             locator=self._ABOUT_MODAL_TITLE_LOCATOR,
             driver=driver,
             parent_locator_list=self._about_panel.locator_list,
             description="The title of the 'About' modal.",
-            wait_timeout=0)
+            timeout=0)
         self._app_bar_wrapper = ComponentPiece(
             locator=self._APP_BAR_WRAPPER_LOCATOR,
             driver=driver,
             parent_locator_list=None,
             description="The highest-level locator available to the App Bar.",
-            wait_timeout=0)
+            timeout=0)
         self._action_panel_toggle_button = ComponentPiece(
             locator=self._ACTION_PANEL_TOGGLE_BUTTON_LOCATOR,
             driver=driver,
             parent_locator_list=self._app_bar_wrapper.locator_list,
             description="The button in the center of the App Bar which expands and collapses the Action panel.",
-            wait_timeout=0)
+            timeout=0)
         self._generic_app_bar_notification_icon = CommonIcon(
             locator=self._GENERIC_NOTIFICATION_ICON_LOCATOR,
             driver=driver,
             parent_locator_list=self._action_panel_toggle_button.locator_list,
             description="A notification icon within the Action panel button (NOT the Revealer).",
-            wait_timeout=0)
+            timeout=0)
         self._action_panel = ComponentPiece(
             locator=self._ACTION_PANEL_LOCATOR,
             driver=driver,
             parent_locator_list=None,
             description="The panel which appears above the App Bar when the central button is clicked.",
-            wait_timeout=0)
+            timeout=0)
         self._connection_security_label = ComponentPiece(
             locator=self._CONNECTION_SECURITY_LABEL_LOCATOR,
             driver=driver,
             parent_locator_list=self._action_panel.locator_list,
             description="The label which displays the connection security of the Session.",
-            wait_timeout=0)
+            timeout=0)
         self._status_button = ComponentPiece(
             locator=self._STATUS_BUTTON_LOCATOR,
             driver=driver,
             parent_locator_list=self._action_panel.locator_list,
             description="The STATUS button within the Action panel.",
-            wait_timeout=0)
+            timeout=0)
         self._username_label = ComponentPiece(
             locator=self._USERNAME_LABEL_LOCATOR,
             driver=driver,
             parent_locator_list=self._action_panel.locator_list,
             description="The label in the Action panel which conveys which user is logged in (if any).",
-            wait_timeout=0)
+            timeout=0)
         self._revealer = ComponentPiece(
             locator=self._REVEALER_LOCATOR,
             driver=driver,
             parent_locator_list=self._app_bar_wrapper.locator_list,
             description="The small piece of UI in the session (usually bottom-right) which allows for expanding the "
                         "App Bar.",
-            wait_timeout=0)
+            timeout=0)
         self._expand_icon = CommonIcon(
             locator=self._SHOW_ICON_LOCATOR,
             driver=driver,
             parent_locator_list=self._revealer.locator_list,
             description="The expand icon, which is only present while the App Bar is collapsed.",
-            wait_timeout=0)
+            timeout=0)
         self._collapse_icon = CommonIcon(
             locator=self._HIDE_ICON_LOCATOR,
             driver=driver,
             parent_locator_list=self._app_bar_wrapper.locator_list,  # Belongs to the App Bar, NOT the Revealer!
             description="The collapse icon, which is only present while the App Bar is expanded.",
-            wait_timeout=0)
+            timeout=0)
         self._timer_icon = CommonIcon(
             locator=self._TIMER_ICON_LOCATOR,
             driver=driver,
             parent_locator_list=self._revealer.locator_list,
             description="The timer icon, which is only present while using Perspective in Trial mode.",
-            wait_timeout=0)
+            timeout=0)
         self._exit_project_icon = CommonIcon(
             locator=self._EXIT_PROJECT_LOCATOR,
             driver=driver,
             parent_locator_list=self._app_bar_wrapper.locator_list,
             description="The Exit Project icon, found only in workstation.",
-            wait_timeout=0)
+            timeout=0)
         self._generic_revealer_notification_icon = CommonIcon(
             locator=self._GENERIC_NOTIFICATION_ICON_LOCATOR,
             driver=driver,
             parent_locator_list=self._revealer.locator_list,
             description="A notification icon within the Revealer (NOT the Action panel button).",
-            wait_timeout=0)
+            timeout=0)
         self._session_status_modal = ComponentPiece(
             locator=self._ABOUT_MODAL_AND_SESSION_STATUS_MODAL_LOCATOR,
             driver=driver,
             parent_locator_list=None,
             description="The Session Status modal, which houses information about the Session and Gateway.",
-            wait_timeout=0)
+            timeout=0)
         self._gateway_tab = ComponentPiece(
             locator=self._GATEWAY_TAB_LOCATOR,
             driver=driver,
             parent_locator_list=self._session_status_modal.locator_list,
             description="The GATEWAY tab in the Session Status modal.",
-            wait_timeout=0)
+            timeout=0)
         self._project_tab = ComponentPiece(
             locator=self._PROJECT_TAB_LOCATOR,
             driver=driver,
             parent_locator_list=self._session_status_modal.locator_list,
             description="The PROJECT tab in the Session Status modal.",
-            wait_timeout=0)
+            timeout=0)
         self._gateway_name = ComponentPiece(
             locator=self._SESSION_STATUS_MODAL_GATEWAY_NAME_LOCATOR,
             driver=driver,
             parent_locator_list=self._session_status_modal.locator_list,
             description="The label which displays the name of the Gateway.",
-            wait_timeout=0)
+            timeout=0)
         self._connection_status_label = ComponentPiece(
             locator=self._CONNECTION_STATUS_LABEL_LOCATOR,
             driver=driver,
             parent_locator_list=self._session_status_modal.locator_list,
             description="The label which houses the connection status in the Session Status modal.",
-            wait_timeout=0)
+            timeout=0)
         self._session_status_panel_close_icon = CommonIcon(
             locator=self._CLOSE_ICON_LOCATOR,
             driver=driver,
             parent_locator_list=self._session_status_modal.locator_list,
             description="The 'X' in the upper-right of the Session Status modal.",
-            wait_timeout=0)
+            timeout=0)
         self._gateway_url_label = ComponentPiece(
             locator=self._GATEWAY_URL_LABEL_LOCATOR,
             driver=driver,
             parent_locator_list=self._session_status_modal.locator_list,
             description="The label which houses the Gateway URL information in the Session Status modal.",
-            wait_timeout=0)
+            timeout=0)
         self._session_id_label = ComponentPiece(
             locator=self._SESSION_ID_LABEL_LOCATOR,
             driver=driver,
             parent_locator_list=self._session_status_modal.locator_list,
             description="The label which houses the Session ID information in the Session Status modal.",
-            wait_timeout=0)
+            timeout=0)
         self._page_id_label = ComponentPiece(
             locator=self._PAGE_ID_LABEL_LOCATOR,
             driver=driver,
             parent_locator_list=self._session_status_modal.locator_list,
             description="The label which houses the Page ID information in the Session Status modal.",
-            wait_timeout=0)
+            timeout=0)
+        self._value_labels = ComponentPiece(
+            locator=self._VALUE_LABELS_LOCATOR,
+            driver=driver,
+            parent_locator_list=self._session_status_modal.locator_list,
+            description="",
+            timeout=0)
+        self._page_stats = ComponentPiece(
+            locator=self._PAGE_STATS_LOCATOR,
+            driver=driver,
+            parent_locator_list=self._session_status_modal.locator_list,
+            description="The Page stats for the Page shown that houses view resources, number of components, number of "
+                        "property changes, latency, and uptime.",
+            timeout=0)
         self._project_name_label = ComponentPiece(
             locator=self._PROJECT_NAME_LABEL_LOCATOR,
             driver=driver,
             parent_locator_list=self._session_status_modal.locator_list,
             description="The label which contains the project name at the top of the Project tab.",
-            wait_timeout=0)
+            timeout=0)
         self._up_to_date_status_label = ComponentPiece(
             locator=self._UPDATE_STATUS_LOCATOR,
             driver=driver,
             parent_locator_list=self._session_status_modal.locator_list,
             description="The label which describes whether a project is up-to-date with the Gateway.",
-            wait_timeout=0)
+            timeout=0)
         self._tooltip = ComponentPiece(
             locator=self._TOOLTIP_LOCATOR,
             driver=driver,
             parent_locator_list=None,
             description="the tooltip which is only visible when hovering over the expand/collapse icon of the "
                         "Revealer.",
-            wait_timeout=1)  # this piece does need a wait period as it takes a moment to appear after the hover event.
+            timeout=1)  # this piece does need a wait period as it takes a moment to appear after the hover event.
         self._generic_text_button = ComponentPiece(
             locator=self._GENERIC_TEXT_BUTTON_LOCATOR,
             driver=driver,
             parent_locator_list=None,
             description="A 'button' (<div>) within the greater Action panel.",
-            wait_timeout=0)
+            timeout=0)
         self._about_panel_close_icon = CommonIcon(
             locator=self._CLOSE_ICON_LOCATOR,
             driver=driver,
             parent_locator_list=None,
             description="The 'X' in the upper-right of the 'About' modal.",
-            wait_timeout=0)
+            timeout=0)
         self._learn_more_button = ComponentPiece(
             locator=self._LEARN_MORE_BUTTON_LOCATOR,
             driver=driver,
             parent_locator_list=self._about_panel.locator_list,
             description="The button within the 'About' modal which has text of 'LEARN MORE ABOUT IGNITION'.",
-            wait_timeout=1)
+            timeout=1)
         self._view_wrapper = ComponentPiece(
             locator=self._CUSTOM_VIEW_WRAPPER_LOCATOR,
             driver=driver,
             parent_locator_list=self._about_panel.locator_list,
-            wait_timeout=1)
+            timeout=1)
         self._generic_custom_view_top_level = ComponentPiece(
             locator=self._CUSTOM_VIEW_LOCATOR,
             driver=driver,
             parent_locator_list=self._about_panel.locator_list,
-            wait_timeout=1)
+            timeout=1)
 
     def about_modal_is_displayed(self) -> bool:
         """
@@ -288,7 +300,7 @@ class AppBar(PagePiece):
         :returns: True, if the 'About Ignition' panel is displayed - False otherwise.
         """
         try:
-            return self._about_panel.find(wait_timeout=0).is_displayed() \
+            return self._about_panel.find(timeout=0).is_displayed() \
                 and "open" in self._about_panel.find().get_attribute("class") \
                 and self._about_modal_and_session_status_modal_title.get_text() != self._SESSION_STATUS_MODAL_TITLE_TEXT
         except TimeoutException:
@@ -301,7 +313,7 @@ class AppBar(PagePiece):
         :returns: True, if the Action Panel is currently displayed - False otherwise.
         """
         try:
-            return self._action_panel.find(wait_timeout=0).is_displayed() and \
+            return self._action_panel.find(timeout=0).is_displayed() and \
                 self._action_panel.get_termination().Y <= self._app_bar_wrapper.get_origin().Y
         except TimeoutException:
             return False
@@ -312,7 +324,7 @@ class AppBar(PagePiece):
         """
         self._expand_app_bar_if_not_expanded()
         # some tests check button appearance after click, so let the button have time to change color
-        self._about_button.click(binding_wait_time=1)
+        self._about_button.click(wait_after_click=1)
 
     def click_learn_more_about_ignition_button(self) -> None:
         """
@@ -332,7 +344,7 @@ class AppBar(PagePiece):
         self._expand_action_panel_if_not_expanded()
         Items(
             items=self._generic_text_button.find_all(
-                wait_timeout=1)).filter(
+                timeout=1)).filter(
             lambda e: e.text == 'SIGN IN')[0].click()
 
     def click_sign_out_button(self) -> None:
@@ -344,7 +356,7 @@ class AppBar(PagePiece):
         self._expand_action_panel_if_not_expanded()
         Items(
             items=self._generic_text_button.find_all(
-                wait_timeout=1)).filter(
+                timeout=1)).filter(
             lambda e: e.text == 'SIGN OUT')[0].click()
 
     def click_status_button(self) -> None:
@@ -610,16 +622,17 @@ class AppBar(PagePiece):
         """
         Obtain the path of the icon in use for the 'About' button.
 
+        Ensures the app bar is expanded, then retrieves the SVG icon path:
+        - If the data-icon attribute is present, its value (a custom icon path) is returned.
+        - If the default icon is used, the function returns None.
+
         :returns: The path in use by the <svg> of the 'About' button.
 
         :raises AssertionError: If unsuccessful in expanding the App Bar.
         """
         self._expand_app_bar_if_not_expanded()
-        try:
-            # Not using the standard icon structure because it isn't technically a Perspective component
-            return self._about_button_local_symbol.find(wait_timeout=0).get_attribute("id")
-        except TimeoutException:
-            return self._about_button.get_icon_name()
+        # Not using the standard icon structure because it isn't technically a Perspective component
+        return self._about_button.find(timeout=0).get_attribute("data-icon")
 
     def get_logged_in_user(self) -> Optional[str]:
         """
@@ -636,6 +649,79 @@ class AppBar(PagePiece):
         except TimeoutException:
             return None
 
+    def get_number_of_view_resources(self) -> int:
+        """
+        Obtain the number of view resources on the Perspective page from the Page Stats modal.
+
+        :returns: The number of view resources of the Perspective page.
+
+        :raises AssertionError: If unsuccessful in opening the Session Status modal.
+        """
+
+        self._open_session_status_modal_if_not_open()
+        number_of_view_resources = self._value_labels.find_all()[0]
+        self.selenium.scroll_to_element(web_element=number_of_view_resources)
+        return int(number_of_view_resources.text)
+
+    def get_number_of_components(self) -> int:
+        """
+        Obtain the number of components on the Perspective page from the Page Stats modal.
+
+        :returns: The number of components of the Perspective page.
+
+        :raises AssertionError: If unsuccessful in opening the Session Status modal.
+        """
+        self._open_session_status_modal_if_not_open()
+        number_of_components = self._value_labels.find_all()[1]
+        self.selenium.scroll_to_element(web_element=number_of_components)
+        return int(number_of_components.text)
+
+    def get_number_of_property_changes(self) -> int:
+        """
+        Obtain the number of property changes on the Perspective page from the Page Stats modal.
+
+        :returns: The number of property changes of the Perspective page.
+
+        :raises AssertionError: If unsuccessful in opening the Session Status modal.
+        """
+        self._open_session_status_modal_if_not_open()
+        number_of_property_changes = self._value_labels.find_all()[2]
+        self.selenium.scroll_to_element(web_element=number_of_property_changes)
+        return int(number_of_property_changes.text)
+
+    def get_latency(self) -> int:
+        """
+        Obtain the latency of the Perspective page from the Page Stats modal.
+
+        :returns: The latency of the Perspective page.
+
+        :raises AssertionError: If unsuccessful in opening the Session Status modal.
+        """
+        self._open_session_status_modal_if_not_open()
+        latency = self._value_labels.find_all()[3]
+        self.selenium.scroll_to_element(web_element=latency)
+        return int(latency.text)
+
+    def get_page_uptime_in_seconds(self) -> int:
+        """
+        Obtain the uptime of the Perspective page from the Page Stats modal.
+
+        :returns: The total uptime of the Perspective page in seconds.
+
+        :raises AssertionError: If unsuccessful in opening the Session Status modal.
+        """
+        self._open_session_status_modal_if_not_open()
+        uptime = self._page_stats.find_all()[4]
+        self.selenium.scroll_to_element(web_element=uptime)
+        regex_pattern = r"[\d]+"
+        total_time_seconds = 0
+        units = re.findall(regex_pattern, uptime.text)
+        units.reverse()
+
+        for index in range(len(units)):
+            total_time_seconds += (int(units[index]) * math.pow(60, index))
+        return total_time_seconds
+
     def get_page_id(self) -> str:
         """
         Obtain the Page ID in use for this Page of the Session.
@@ -645,7 +731,7 @@ class AppBar(PagePiece):
         :raises AssertionError: If unsuccessful in opening the Session Status modal.
         """
         self._open_session_status_modal_if_not_open()
-        return self._page_id_label.get_text()
+        return self._page_id_label.get_text().removeprefix("Page ID: ")
 
     def get_project_status(self) -> str:
         """
@@ -705,7 +791,7 @@ class AppBar(PagePiece):
         revealer_icon = \
             self._collapse_icon if self.is_expanded() else self._expand_icon
         revealer_icon.hover()
-        revealer_icon.wait_on_binding(time_to_wait=0.5)
+        revealer_icon.wait_some_time(time_to_wait=0.5)
 
     def is_expanded(self) -> bool:
         """
@@ -772,7 +858,7 @@ class AppBar(PagePiece):
 
         :returns: True, if the Revealer is displayed in the supplied position - False otherwise.
         """
-        return (f'bar-reveal-{toggle_position.value}' in self._revealer.find(wait_timeout=0).get_attribute('class'))\
+        return (f'bar-reveal-{toggle_position.value}' in self._revealer.find(timeout=0).get_attribute('class'))\
             and self._revealer.find().is_displayed()
 
     def revealer_tooltip_is_displayed(self) -> bool:
@@ -783,7 +869,7 @@ class AppBar(PagePiece):
         :returns: True, if the tooltip of the Revealer is currently displayed - False otherwise.
         """
         try:
-            return self._tooltip.find(wait_timeout=0).is_displayed()
+            return self._tooltip.find(timeout=0).is_displayed()
         except TimeoutException:
             return False
 
@@ -810,7 +896,7 @@ class AppBar(PagePiece):
         :returns: True, if the Revealer is currently displayed - False otherwise.
         """
         try:
-            return self._revealer.find(wait_timeout=0).is_displayed()
+            return self._revealer.find(timeout=0).is_displayed()
         except TimeoutException:
             return False
 
@@ -821,7 +907,7 @@ class AppBar(PagePiece):
         :returns: True, if the Session Status modal is currently open - False otherwise.
         """
         try:
-            return self._session_status_modal.find(wait_timeout=0).is_displayed() \
+            return self._session_status_modal.find(timeout=0).is_displayed() \
                 and "open" in self._session_status_modal.find().get_attribute("class") \
                 and self._about_modal_and_session_status_modal_title.get_text() == self._SESSION_STATUS_MODAL_TITLE_TEXT
         except TimeoutException:
@@ -865,25 +951,26 @@ class AppBar(PagePiece):
         """
         self._expand_action_panel_if_not_expanded()
         try:
-            return self._status_button.find(wait_timeout=0).is_displayed()
+            return self._status_button.find(timeout=0).is_displayed()
         except TimeoutException:
             return False
 
-    def wait_for_revealer_or_app_bar_to_be_displayed(self, wait_timeout: int = 10) -> None:
+    def wait_for_revealer_or_app_bar_to_be_displayed(self, timeout: int = 10) -> bool:
         """
         Wait for the Session to display either the Revealer or the expanded App Bar. Useful for waiting for Perspective
         Pages.
 
-        :param wait_timeout: The amount of time (in seconds) you ar wiling to wait for the Revealer to be present
+        :param timeout: The amount of time (in seconds) you ar wiling to wait for the Revealer to be present
             before allowing code to continue.
-
-        :raises TimeoutException: If neither the Revealer nor the App Bar become visible in the allotted time.
+        :returns: True, if either the Revealer or the App Bar is displayed before the timeout period has elapsed
+            - False otherwise.
         """
         try:
-            WebDriverWait(driver=self.driver, timeout=wait_timeout).until(
+            WebDriverWait(driver=self.driver, timeout=timeout).until(
                 IAec.function_returns_true(custom_function=self._app_bar_or_revealer_is_displayed, function_args={}))
+            return True
         except TimeoutException as toe:
-            raise TimeoutException(msg="Neither the App Bar nor the Revealer ever became visible.") from toe
+            return False
 
     def _app_bar_is_fully_collapsed(self) -> bool:
         """
@@ -914,7 +1001,7 @@ class AppBar(PagePiece):
         except TimeoutException:
             pass
         try:
-            app_bar_is_displayed = self._app_bar_wrapper.find(wait_timeout=0).is_displayed()
+            app_bar_is_displayed = self._app_bar_wrapper.find(timeout=0).is_displayed()
         except TimeoutException:
             pass
         return revealer_is_displayed or app_bar_is_displayed
@@ -971,7 +1058,7 @@ class AppBar(PagePiece):
         :raises AssertionError: If unsuccessful in expanding the App Bar.
         """
         if not self.is_expanded():
-            self._expand_icon.click(wait_timeout=0.5)
+            self._expand_icon.click(timeout=0.5)
             self._wait_for_app_bar_to_be_fully_expanded()
         IAAssert.is_true(
             value=self.is_expanded(),
@@ -985,7 +1072,7 @@ class AppBar(PagePiece):
         """
         return Items(
             items=self._generic_text_button.find_all(
-                wait_timeout=1)).filter(
+                timeout=1)).filter(
             lambda e: e.text == button_text)[0]
 
     def _open_about_modal_if_not_open(self) -> None:
@@ -1045,7 +1132,7 @@ class AppBar(PagePiece):
         :returns: True, if the Session Status modal is currently open and visible to the user - False otherwise.
         """
         try:
-            return self._session_status_modal.find(wait_timeout=0).is_displayed() \
+            return self._session_status_modal.find(timeout=0).is_displayed() \
                 and "open" in self._session_status_modal.find().get_attribute("class")
         except TimeoutException:
             return False

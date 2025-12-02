@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import StrEnum
 from typing import List, Optional, Tuple, Union
 
 from selenium.common.exceptions import StaleElementReferenceException, NoSuchElementException, TimeoutException, \
@@ -6,17 +6,19 @@ from selenium.common.exceptions import StaleElementReferenceException, NoSuchEle
 from selenium.webdriver import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
+from selenium.webdriver.remote.webelement import WebElement
 
 from Components.BasicComponent import ComponentPiece, BasicPerspectiveComponent
+from Components.Common.Icon import CommonIcon
 from Components.Common.TextInput import CommonTextInput
 from Components.PerspectiveComponents.Common.DateRangeSelector import HistoricalRange
 from Components.PerspectiveComponents.Common.DateTimePicker import PerspectiveDate
-from Components.PerspectiveComponents.Common.Icon import CommonIcon
 from Components.PerspectiveComponents.Common.Table import Table as CommonTable
 from Components.PerspectiveComponents.Common.TablePieces.Body import Body
 from Components.PerspectiveComponents.Common.TablePieces.Filter import Filter
 from Components.PerspectiveComponents.Common.TablePieces.HeaderAndFooter import Header, FilterModal, Footer
 from Components.PerspectiveComponents.Common.TablePieces.Pager import Pager
+from Helpers import CSSEnumerations
 from Helpers.CSSEnumerations import CSS
 from Helpers.IAAssert import IAAssert
 from Helpers.IASelenium import IASelenium
@@ -25,7 +27,7 @@ from Helpers.Point import Point
 
 class ColumnConfigurations:
     """Enums relating to ways a column can be configured/rendered, and also runtime settings like column filtering."""
-    class Render(Enum):
+    class Render(StrEnum):
         """Available settings for how a column may be rendered."""
         AUTO = "auto"
         NUMBER = "number"
@@ -36,7 +38,7 @@ class ColumnConfigurations:
 
     class Filter:
         """Column filtering settings, including conditions and filter icon visibility"""
-        class Condition(Enum):
+        class Condition(StrEnum):
             """
             This is a complete collection of conditions, but not all conditions are applicable based on the column type.
             """
@@ -60,7 +62,7 @@ class ColumnConfigurations:
             STARTS_WITH = "starts with"  # string
             TRUE = "true"
 
-        class Visible(Enum):
+        class Visible(StrEnum):
             """Settings for specifying the appearance of the column filter icon in the header."""
             ALWAYS = "always"
             ON_HOVER = "on-hover"
@@ -84,20 +86,45 @@ class _TableBody(Body):
             locator=self._COPY_OPTION_LOCATOR,
             driver=driver,
             parent_locator_list=None,
-            wait_timeout=1,
+            timeout=1,
             poll_freq=poll_freq)
         self._empty_message = ComponentPiece(
             locator=self._EMPTY_MESSAGE_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=0.5,
+            timeout=0.5,
             poll_freq=poll_freq)
         self._empty_icon = CommonIcon(
             locator=self._EMPTY_MESSAGE_ICON_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=0.5,
+            timeout=0.5,
             poll_freq=poll_freq)
+        self._active_editing_cell = ComponentPiece(
+            driver=driver,
+            locator=(By.CSS_SELECTOR, "div>textarea"),
+            parent_locator_list=self.locator_list
+        )
+
+    def cell_is_open_for_editing(self, zero_based_row_index: int, column_id: str) -> bool:
+        """
+        Determine if the cell of a Table is open for editing.
+
+        :param zero_based_row_index: The zero-based index of the row to check.
+        :param column_id: The field in use by the column to be checked.
+
+        :returns: True, if the cell is open for editing; False otherwise.
+        """
+        _locator = (By.CSS_SELECTOR, f'{self.__get_row_css_by_row_index(row_index=zero_based_row_index)} '
+                                     f'{self.__get_column_css_by_column_id(column_id=column_id)} textarea.ia_textArea')
+        try:
+            return ComponentPiece(
+                locator=_locator,
+                driver=self.driver,
+                parent_locator_list=self.locator_list,
+                poll_freq=self.poll_freq).find(timeout=0) is not None
+        except TimeoutException:
+            return False
 
     def cell_is_root_selection(self, row_index: int, column_index: int) -> bool:
         """
@@ -121,6 +148,26 @@ class _TableBody(Body):
         except StaleElementReferenceException:
             return self.cell_is_root_selection(row_index=row_index, column_index=column_index)
         except NoSuchElementException:
+            return False
+
+    def cell_is_selected_by_row_id_column_id(self, row_id: int, column_id: str) -> bool:
+        """
+        Determine if the cell of a Table is selected based on row id and column id.
+
+        :param row_id: The unique identifier of the row to check.
+        :param column_id: The field in use by the column to be checked.
+
+        :returns: True, if the cell is selected; False otherwise.
+        """
+        _locator = (By.CSS_SELECTOR, f'{self.__get_row_css_by_row_id(row_id=row_id)} '
+                                     f'{self.__get_column_css_by_column_id(column_id=column_id)} div.t-selected')
+        try:
+            return ComponentPiece(
+                locator=_locator,
+                driver=self.driver,
+                parent_locator_list=self.locator_list,
+                poll_freq=self.poll_freq).find(timeout=0) is not None
+        except TimeoutException:
             return False
 
     def cell_is_selected(self, row_index: int, column_index: int) -> bool:
@@ -154,7 +201,7 @@ class _TableBody(Body):
 
         :raises TimeoutException: If the context menu which contains the copy option is not present.
         """
-        self._copy_option.click(wait_timeout=1)
+        self._copy_option.click(timeout=1)
 
     def collapse_subview_by_row_index(self, row_index: int) -> None:
         """
@@ -167,7 +214,7 @@ class _TableBody(Body):
         if self.subview_is_expanded(row_index=row_index):
             locator = (By.CSS_SELECTOR, self.__get_subview_css_by_row_index(row_index=row_index))
             subview_arrow = ComponentPiece(locator=locator, driver=self.driver, parent_locator_list=self.locator_list)
-            subview_arrow.click(binding_wait_time=0.5)
+            subview_arrow.click(wait_after_click=0.5)
 
     def contains_subviews(self) -> bool:
         """
@@ -207,23 +254,24 @@ class _TableBody(Body):
         """
         return 'disabled' not in self._copy_option.find().get_attribute("class")
 
-    def double_click_cell(self, row_index: int, column_index: int, binding_wait_time: float = 0) -> None:
+    def double_click_cell(self, row_index: int, column_index: int, wait_after_click: float = 0) -> None:
         """
         Double-click a cell of the Table.
 
         :param row_index: The zero-based index of the row containing the target cell.
         :param column_index: The zero-based index of the column containing the target cell.
-        :param binding_wait_time: The amount of time (in seconds) to wait before allowing code to continue.
+        :param wait_after_click: The amount of time (in seconds) to wait before allowing code to continue.
 
         :raises TimeoutException: If the supplied indices do not define a cell of the Table.
         """
-        _locator = (By.CSS_SELECTOR, f'{self.__get_row_css_by_row_index(row_index=row_index)} '
+        # We will obtain the row group by row index, and the column will always be in the 0th row within that group.
+        _locator = (By.CSS_SELECTOR, f'{self.__get_row_group_css_by_row_index(row_index=row_index)} '
                                      f'{self.__get_column_css_by_index(column_index=column_index)}')
         ComponentPiece(
             locator=_locator,
             driver=self.driver,
             parent_locator_list=self.locator_list,
-            poll_freq=self.poll_freq).double_click(binding_wait_time=binding_wait_time)
+            poll_freq=self.poll_freq).double_click(wait_after_click=wait_after_click)
 
     def expand_subview_by_row_index(self, row_index: int) -> None:
         """
@@ -240,10 +288,46 @@ class _TableBody(Body):
                 driver=self.driver,
                 parent_locator_list=self.locator_list,
                 poll_freq=self.poll_freq)\
-                .click(binding_wait_time=0.5)
+                .click(wait_after_click=0.5)
         IAAssert.is_true(
             value=self.subview_is_expanded(row_index=row_index),
             failure_msg=f"Failed to expand a subview for row {row_index}.")
+
+    def get_row_index_of_active_editing_cell(self) -> int | None:
+        """
+        Retrieve the row index of the active editing cell.
+
+        :returns: The row index of the active editing cell.
+                     If no active editing cell is found, returns None.
+        """
+        try:
+            return self._get_row_index(web_element=self._active_editing_cell.find(timeout=0))
+        except TimeoutException:
+            return None
+
+    def get_column_id_of_active_editing_cell(self) -> str | None:
+        """
+        Retrieve the column id of the active editing cell.
+
+        :returns: The column id of the active editing cell.
+                     If no active editing cell is found, returns None.
+        """
+        try:
+            cell = self._active_editing_cell.find(timeout=0)
+            return cell.get_attribute(name="data-column-id")
+        except TimeoutException:
+            return None
+
+    def get_text_of_active_editing_cell(self) -> str | None:
+        """
+        Get the text content of the active editing cell.
+
+        :returns: The text content of the active editing cell if it exists, otherwise None.
+        """
+        try:
+            return self._active_editing_cell.find(timeout=0).text
+        except TimeoutException:
+            return None
 
     def get_count_of_selected_rows(self) -> int:
         """
@@ -379,7 +463,7 @@ class _TableBody(Body):
                 return False
         return True
 
-    def set_cell_data_by_row_index_column_id(
+    def set_cell_content(
             self,
             zero_based_row_index: int,
             column_id: str,
@@ -395,12 +479,9 @@ class _TableBody(Body):
         :param commit_value: A boolean flag indicating whether to commit changes immediately or not.
             If True, changes will be committed by appending Keys.ENTER to it after setting the cell data.
             If False, changes will not be committed, allowing for further modifications before committing.
-
-        :raises: TimeoutException: If the cell is not already in an editable state; this function does not prepare the
-        cell for editing.
         """
 
-        _locator = (By.CSS_SELECTOR, f'{self.__get_row_css_by_row_index(row_index=zero_based_row_index)} '
+        _locator = (By.CSS_SELECTOR, f'{self.__get_row_group_css_by_row_index(row_index=zero_based_row_index)} '
                                      f'{self.__get_column_css_by_column_id(column_id=column_id)} textarea.ia_textArea')
         if commit_value:
             text += Keys.ENTER
@@ -423,13 +504,19 @@ class _TableBody(Body):
         except TimeoutException:
             pass
 
-    def scroll_to_row(self, row_index: int, align_to_top: bool = False) -> None:
+    def scroll_to_row(
+            self,
+            row_index: int,
+            behavior: CSSEnumerations.CSS.Behavior = CSSEnumerations.CSS.Behavior.AUTO,
+            block: CSSEnumerations.CSS.Block = CSSEnumerations.CSS.Block.START,
+            inline: CSSEnumerations.CSS.Inline = CSSEnumerations.CSS.Inline.NEAREST) -> None:
         """
         Scroll the Table so that the specified row is visible.
 
+        :param inline: The CSS Inline value to use when scrolling the row into view.
+        :param block: The CSS Block value to use when scrolling the row into view.
+        :param behavior: The CSS Behavior value to use when scrolling the row into view.
         :param row_index: The zero-based index of the row we will scroll to.
-        :param align_to_top: If True, we will try to align the row to the Top of the viewport. If False, we will attempt
-            to align the row to the bottom of the viewport.
 
         :raises TimeoutException: If no row exists with the supplied index.
         """
@@ -439,16 +526,17 @@ class _TableBody(Body):
             driver=self.driver,
             parent_locator_list=self.locator_list,
             poll_freq=self.poll_freq)
-        min_index = min([int(row.get_attribute('data-row-index')) for row in rows.find_all()])
-        max_index = max([int(row.get_attribute('data-row-index')) for row in rows.find_all()])
+        row_indices = [self._get_row_index(web_element=row) for row in rows.find_all()]
+        min_index = min(row_indices)
+        max_index = max(row_indices)
         if min_index > row_index:
-            self._scroll_to_row(row_index=min_index, align_to_top=False)
-            self.scroll_to_row(row_index=row_index, align_to_top=align_to_top)
+            self._scroll_to_row(row_index=min_index, block=CSSEnumerations.CSS.Block.END)
+            self.scroll_to_row(row_index=row_index, behavior=behavior, block=block, inline=inline)
         elif max_index < row_index:
-            self._scroll_to_row(row_index=max_index, align_to_top=True)
-            self.scroll_to_row(row_index=row_index, align_to_top=align_to_top)
+            self._scroll_to_row(row_index=max_index, )
+            self.scroll_to_row(row_index=row_index, behavior=behavior, block=block, inline=inline)
         else:
-            self._scroll_to_row(row_index=row_index, align_to_top=align_to_top)
+            self._scroll_to_row(row_index=row_index, behavior=behavior, block=block, inline=inline)
 
     def subview_is_expanded(self, row_index: int) -> bool:
         """
@@ -462,7 +550,7 @@ class _TableBody(Body):
                 locator=(By.CSS_SELECTOR, self.__get_subview_css_by_row_index(row_index=row_index)),
                 driver=self.driver,
                 parent_locator_list=self.locator_list,
-                poll_freq=self.poll_freq).find(wait_timeout=1).get_attribute("class")
+                poll_freq=self.poll_freq).find(timeout=1).get_attribute("class")
         except TimeoutException:
             return False
 
@@ -482,13 +570,16 @@ class _TableBody(Body):
         except StaleElementReferenceException:
             return self.get_count_of_selected_rows()
 
-    def _scroll_to_row(self, row_index: int, align_to_top: bool = False) -> None:
+    def _scroll_to_row(
+            self,
+            row_index: int,
+            behavior: CSSEnumerations.CSS.Behavior = CSSEnumerations.CSS.Behavior.AUTO,
+            block: CSSEnumerations.CSS.Block = CSSEnumerations.CSS.Block.START,
+            inline: CSSEnumerations.CSS.Inline = CSSEnumerations.CSS.Inline.NEAREST) -> None:
         """
         Scroll the Table so that the specified row is visible.
 
         :param row_index: The zero-based index of the row we will scroll to.
-        :param align_to_top: If True, we will try to align the row to the Top of the viewport. If False, we will attempt
-            to align the row to the bottom of the viewport.
 
         :raises TimeoutException: If no row exists with the supplied index.
         """
@@ -497,20 +588,31 @@ class _TableBody(Body):
             driver=self.driver,
             parent_locator_list=self.locator_list,
             poll_freq=self.poll_freq)
-        row.scroll_to_element(align_to_top=align_to_top)
-        row.wait_on_binding()
+        row.scroll_to_element(behavior=behavior, block=block, inline=inline)
+        row.wait_some_time()
 
-    def __get_column_css_by_index(self, column_index: Union[int, str]) -> str:
-        """Obtain the CSS which defines a column based on its index."""
-        return f'{self._CELL_LOCATOR[1]}[data-column-index="{column_index}"]'
+    @classmethod
+    def _get_row_index(cls, web_element: WebElement) -> int:
+        return int(web_element.get_attribute("data-row-id"))
 
     def __get_column_css_by_column_id(self, column_id: Union[int, str]) -> str:
         """Obtain the CSS which defines a column based on its id."""
         return f'{self._CELL_LOCATOR[1]}[data-column-id="{column_id}"]'
 
+    def __get_column_css_by_index(self, column_index: Union[int, str]) -> str:
+        """Obtain the CSS which defines a column based on its index."""
+        return f'{self._CELL_LOCATOR[1]}[data-column-index="{column_index}"]'
+
+    def __get_row_css_by_row_id(self, row_id: Union[int, str]) -> str:
+        """Obtain the CSS which defines a row based on its unique id."""
+        return f'{self._ROW_GROUP_LOCATOR[1]}[data-row-id="{row_id}"] {self._ROW_LOCATOR[1]}'
+
     def __get_row_css_by_row_index(self, row_index: Union[int, str]) -> str:
         """Obtain the CSS which defines a row based on its index."""
-        return f'{self._ROW_GROUP_LOCATOR[1]}[data-row-index="{row_index}"] {self._ROW_LOCATOR[1]}'
+        return f'{self.__get_row_group_css_by_row_index(row_index=row_index)} {self._ROW_LOCATOR[1]}'
+
+    def __get_row_group_css_by_row_index(self, row_index: Union[int, str]) -> str:
+        return f'{self._ROW_GROUP_LOCATOR[1]}[data-row-index="{row_index}"]'
 
     def __get_subview_css_by_row_index(self, row_index: Union[int, str]) -> str:
         """Obtain the CSS which defines a subview based on the index of the row which contains it."""
@@ -524,13 +626,13 @@ class _TableHeader(Header):
     def __init__(
             self,
             driver: WebDriver,
-            parent_locator_list: List[Tuple[By, str]],
-            wait_timeout: float = 1,
+            parent_locator_list: List[Tuple[Union[By, str], str]],
+            timeout: float = 1,
             poll_freq: float = 0.5):
         super().__init__(
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             poll_freq=poll_freq)
         self._filter_modal = FilterModal(driver=driver)
         self._header_row_groups = {}
@@ -632,7 +734,7 @@ class _TableHeader(Header):
         return self._get_cell_from_header_row_group(
             zero_based_header_row_group_index=zero_based_header_row_group_index, label=label_text).get_termination()
 
-    def set_column_filter_condition(self, condition: ColumnConfigurations.Filter.Condition) -> None:
+    def set_column_filter_condition(self, condition: Union[ColumnConfigurations.Filter.Condition, str]) -> None:
         """
         Set the current filtering condition of a column within the open filtering modal.
 
@@ -641,7 +743,7 @@ class _TableHeader(Header):
         :raises TimeoutException: If the column filtering modal is not present.
         :raises AssertionError: If the interaction does not result in the condition being selected.
         """
-        self._filter_modal.set_condition(condition=condition.value)
+        self._filter_modal.set_condition(condition=condition)
 
     def _get_filter_by_column_index(self, column_index: int) -> ComponentPiece:
         """
@@ -653,7 +755,7 @@ class _TableHeader(Header):
                 locator=(By.CSS_SELECTOR, "div.filter-button svg"),
                 driver=self.driver,
                 parent_locator_list=self._get_header_cell_by_index(column_index=column_index).locator_list,
-                wait_timeout=1)
+                timeout=1)
             self._filter_cells[column_index] = filter_comp
         return filter_comp
 
@@ -718,18 +820,19 @@ class Table(CommonTable, BasicPerspectiveComponent):
     """
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 10,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 10,
             description: Optional[str] = None,
-            poll_freq: float = 0.5):
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
         CommonTable.__init__(
             self,
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
             poll_freq=poll_freq)
         BasicPerspectiveComponent.__init__(
@@ -737,8 +840,9 @@ class Table(CommonTable, BasicPerspectiveComponent):
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
-            poll_freq=poll_freq)
+            timeout=timeout,
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
         self._body = _TableBody(driver=driver, parent_locator_list=self.locator_list, poll_freq=poll_freq)
         self._filter = Filter(driver=driver, parent_locator_list=self.locator_list, poll_freq=poll_freq)
         self._filter_modal = FilterModal(driver=driver)
@@ -767,6 +871,33 @@ class Table(CommonTable, BasicPerspectiveComponent):
         """
         return self._body.cell_is_root_selection(row_index=row_index, column_index=column_index)
 
+    def cell_is_open_for_editing(self, zero_based_row_index: int, column_id: str, ) -> bool:
+        """
+        Determine if the cell of a Table is open for editing.
+
+        :param zero_based_row_index: The zero-based index of the row to check.
+        :param column_id: The field in use by the column to be checked.
+
+        :returns: True, if the cell is open for editing; False otherwise.
+
+        :raises TimeoutException: If the supplied row index or column ID is invalid.
+        """
+        return self._body.cell_is_open_for_editing(zero_based_row_index=zero_based_row_index, column_id=column_id)
+
+    def cell_is_selected_by_row_id_column_id(self, row_id: int, column_id: str, ) -> bool:
+        """
+        Determine if the cell of a Table is selected based on the provided row ID and column ID.
+
+        :param row_id: The unique identifier of the row to check.
+        :param column_id: The field in use by the column to be checked.
+
+        :returns: True, if the cell is selected; False otherwise.
+
+        :raises TimeoutException: If the supplied row ID or column ID is invalid.
+        """
+        return self._body.cell_is_selected_by_row_id_column_id(
+            row_id=row_id, column_id=column_id)
+
     def cell_is_selected(self, row_index: int, column_index: int) -> bool:
         """
         Determine if a specified cell is currently part of the active selection of the Table.
@@ -780,7 +911,7 @@ class Table(CommonTable, BasicPerspectiveComponent):
         """
         return self._body.cell_is_selected(row_index=row_index, column_index=column_index)
 
-    def click(self, wait_timeout=None, binding_wait_time: float = 0) -> None:
+    def click(self, timeout=None, wait_after_click: float = 0) -> None:
         """
         This method is only here to override the inherited method and prevent any generic clicking of the Table.
 
@@ -918,16 +1049,17 @@ class Table(CommonTable, BasicPerspectiveComponent):
         """
         return self._body.copy_option_is_enabled()
 
-    def double_click_cell_in_body(self, row_index: int, column_index: int) -> None:
+    def double_click_cell_in_body(self, row_index: int, column_index: int, wait_after_click: float = 0) -> None:
         """
         Double-click a cell in the body of the Table.
 
         :param row_index: The zero-based index of the row containing the target cell.
         :param column_index: The zero-based index of the column containing the target cell.
+        :param wait_after_click: The amount of time to wait after the double-click before allowing code to continue.
 
         :raises TimeoutException: If the supplied indices do not define a cell of the Table.
         """
-        self._body.double_click_cell(row_index=row_index, column_index=column_index)
+        self._body.double_click_cell(row_index=row_index, column_index=column_index, wait_after_click=wait_after_click)
 
     def end_time_hours_input_is_enabled_in_filtering_modal(self) -> bool:
         """
@@ -1024,6 +1156,38 @@ class Table(CommonTable, BasicPerspectiveComponent):
         :returns: True, if the Table is currently displaying a Footer - False otherwise.
         """
         return self._footer.footer_is_present()
+
+    def get_row_index_of_active_editing_cell(self) -> int:
+        """
+        Retrieve the row index of the active editing cell.
+
+        :returns: The row index of the active editing cell.
+                     If no active editing cell is found, returns None.
+
+        :raises TimeoutException: If the active editing cell is not found within the specified timeout.
+        """
+        return self._body.get_row_index_of_active_editing_cell()
+
+    def get_column_id_of_active_editing_cell(self) -> str:
+        """
+        Retrieve the column id of the active editing cell.
+
+        :returns: The column id of the active editing cell.
+                     If no active editing cell is found, returns None.
+
+        :raises TimeoutException: If the active editing cell is not found within the specified timeout.
+        """
+        return self._body.get_column_id_of_active_editing_cell()
+
+    def get_text_of_active_editing_cell(self) -> str:
+        """
+        Get the text content of the active editing cell.
+
+        :returns: The text content of the active editing cell if it exists, otherwise None.
+
+        :raises TimeoutException: If the active editing cell is not found within the specified timeout.
+        """
+        return self._body.get_text_of_active_editing_cell()
 
     def get_active_page(self) -> int:
         """
@@ -1531,17 +1695,23 @@ class Table(CommonTable, BasicPerspectiveComponent):
         """
         return self._pager.row_select_dropdown_is_displayed()
 
-    def scroll_to_row(self, row_index: int, align_to_top: bool = False) -> None:
+    def scroll_to_row(
+            self,
+            row_index: int,
+            behavior: CSSEnumerations.CSS.Behavior = CSSEnumerations.CSS.Behavior.AUTO,
+            block: CSSEnumerations.CSS.Block = CSSEnumerations.CSS.Block.START,
+            inline: CSSEnumerations.CSS.Inline = CSSEnumerations.CSS.Inline.NEAREST) -> None:
         """
         Scroll the Table so that the specified row is visible.
 
+        :param inline: The inline alignment of the row in the viewport. Default is NEAREST.
+        :param block: The block alignment of the row in the viewport. Default is START.
+        :param behavior: The scrolling behavior to use. Default is AUTO.
         :param row_index: The zero-based index of the row we will scroll to.
-        :param align_to_top: If True, we will try to align the row to the Top of the viewport. If False, we will attempt
-            to align the row to the bottom of the viewport.
 
         :raises TimeoutException: If no row exists with the supplied index.
         """
-        return self._body.scroll_to_row(row_index=row_index, align_to_top=align_to_top)
+        return self._body.scroll_to_row(row_index=row_index, behavior=behavior, block=block, inline=inline)
 
     def seconds_input_is_enabled_in_modal(self) -> bool:
         """
@@ -1577,7 +1747,7 @@ class Table(CommonTable, BasicPerspectiveComponent):
         :raises TimeoutException: If any of the tuples fail to define a cell of the Table.
         """
         self._body.inclusive_select_cells_by_indices(list_of_row_column_index_tuples=list_of_row_column_index_tuples)
-        self.wait_on_binding(time_to_wait=0.5)
+        self.wait_some_time(time_to_wait=0.5)
 
     def select_rows_to_display(self, count_of_rows: int) -> None:
         """
@@ -1588,7 +1758,7 @@ class Table(CommonTable, BasicPerspectiveComponent):
         """
         self._pager.set_displayed_row_count(count_of_rows=count_of_rows)
 
-    def set_column_filter_condition(self, condition: ColumnConfigurations.Filter.Condition) -> None:
+    def set_column_filter_condition(self, condition: Union[ColumnConfigurations.Filter.Condition, str]) -> None:
         """
         Select a condition from the dropdown.
 
@@ -1597,7 +1767,7 @@ class Table(CommonTable, BasicPerspectiveComponent):
         :raises TimeoutException: If the condition dropdown is not present.
         :raises AssertionError: If we fail to select the supplied condition.
         """
-        self._filter_modal.set_condition(condition=condition.value)
+        self._filter_modal.set_condition(condition=condition)
 
     def set_column_filter_date(self, date: PerspectiveDate, apply: bool = True) -> None:
         """
@@ -1677,7 +1847,7 @@ class Table(CommonTable, BasicPerspectiveComponent):
         """
         self._filter.set_filter_text(text=text)
 
-    def set_cell_data_by_row_index_column_id(
+    def set_cell_content(
             self, row_index: int, column_id: str, text: str, commit_value: bool) -> None:
         """
         Set the data of a cell in the table specified by the given parameters.
@@ -1690,8 +1860,11 @@ class Table(CommonTable, BasicPerspectiveComponent):
         :param commit_value: A boolean flag indicating whether to commit changes immediately or not.
             If True, changes will be committed by pressing Enter after setting the cell data.
             If False, changes will not be committed, allowing for further modifications before committing.
+
+        :raises: TimeoutException: If the cell is not already in an editable state; this function does not prepare the
+        cell for editing.
         """
-        self._body.set_cell_data_by_row_index_column_id(
+        self._body.set_cell_content(
             zero_based_row_index=row_index, column_id=column_id, text=text, commit_value=commit_value)
 
     def start_time_hours_input_is_enabled(self) -> bool:
@@ -1735,9 +1908,9 @@ class Table(CommonTable, BasicPerspectiveComponent):
         """
         return self._body.subview_is_expanded(row_index=row_index)
 
-    def wait_for_cell_to_have_text_by_row_index_column_id(
+    def wait_for_cell_to_have_text(
             self, zero_based_row_index: Union[int, str], column_id: str, text: str, timeout: float = 0):
-        return self._body.wait_for_cell_to_have_text_by_row_index_column_id(
+        return self._body.wait_for_cell_to_have_text(
             zero_based_row_index=zero_based_row_index,
             column_id=column_id,
             text=text,

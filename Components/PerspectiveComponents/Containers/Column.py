@@ -1,4 +1,4 @@
-from typing import Tuple, List, Optional
+from typing import Tuple, List, Optional, Union
 
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.common.by import By
@@ -14,29 +14,31 @@ class Column(BasicPerspectiveComponent):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 5,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 5,
             description: Optional[str] = None,
-            poll_freq: float = 0.5):
+            poll_freq: float = 0.5,
+            raise_exception_for_overlay: bool = False):
         super().__init__(
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
-            poll_freq=poll_freq)
+            poll_freq=poll_freq,
+            raise_exception_for_overlay=raise_exception_for_overlay)
         self._rows = ComponentPiece(
             locator=self._ROW_LOCATOR,
             driver=driver,
             parent_locator_list=self.locator_list,
-            wait_timeout=2,
+            timeout=2,
             poll_freq=poll_freq)
         self._indexed_rows_dict = {}
 
     def element_with_locator_is_in_row_by_index(
-            self, element_locator: Tuple[By, str], zero_based_row_index: int) -> bool:
+            self, element_locator: Tuple[Union[By, str], str], zero_based_row_index: int) -> bool:
         """
         Determine if the supplied locator exists within a specified row.
 
@@ -52,7 +54,8 @@ class Column(BasicPerspectiveComponent):
         except TimeoutException:
             return False
 
-    def get_count_of_web_elements_in_row_by_locator(self, zero_based_row_index: int, locator: Tuple[By, str]) -> int:
+    def get_count_of_web_elements_in_row_by_locator(
+            self, zero_based_row_index: int, locator: Tuple[Union[By, str], str]) -> int:
         """
         Obtain a count of the number of instances which match the supplied locator within a specified row.
 
@@ -71,7 +74,7 @@ class Column(BasicPerspectiveComponent):
             # return 0 if no element with locator is found.
             return 0
 
-    def get_row_of_component_by_locator(self, element_locator: Tuple[By, str]) -> Optional[int]:
+    def get_row_of_component_by_locator(self, element_locator: Tuple[Union[By, str], str]) -> Optional[int]:
         """
         Obtain the row index of the row which contains the supplied locator.
 
@@ -100,7 +103,7 @@ class Column(BasicPerspectiveComponent):
                 locator=(By.CSS_SELECTOR, f'{self._ROW_CONTAINER_LOCATOR[1]} div[data-row-index="{index}"]'),
                 driver=self.driver,
                 parent_locator_list=self.locator_list,
-                wait_timeout=2,
+                timeout=2,
                 poll_freq=self.poll_freq)
             self._indexed_rows_dict[index] = row
         return row

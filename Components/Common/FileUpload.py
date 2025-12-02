@@ -1,9 +1,10 @@
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
 
 from Components.BasicComponent import BasicComponent, ComponentPiece
+from Helpers.Formatting import FilePathFormatting
 
 
 class FileUpload(BasicComponent):
@@ -15,17 +16,17 @@ class FileUpload(BasicComponent):
 
     def __init__(
             self,
-            locator: Tuple[By, str],
+            locator: Tuple[Union[By, str], str],
             driver: WebDriver,
-            parent_locator_list: Optional[List[Tuple[By, str]]] = None,
-            wait_timeout: float = 10,
+            parent_locator_list: Optional[List[Tuple[Union[By, str], str]]] = None,
+            timeout: float = 10,
             description: Optional[str] = None,
             poll_freq: float = 0.5):
         super().__init__(
             locator=locator,
             driver=driver,
             parent_locator_list=parent_locator_list,
-            wait_timeout=wait_timeout,
+            timeout=timeout,
             description=description,
             poll_freq=poll_freq)
         self._button = ComponentPiece(
@@ -60,10 +61,10 @@ class FileUpload(BasicComponent):
         """
         return "disabled" not in self._button.find().get_attribute("class")
 
-    def upload_file_by_path(self, normalized_file_path: str) -> None:
+    def upload_file_by_path(self, file_path: str) -> None:
         """
         Supply the location of a file to be uploaded.
 
-        :param normalized_file_path: The normalized (OS-agnostic) path to the file to be uploaded.
+        :param file_path: The path to the file to be uploaded.
         """
-        self._input.find().send_keys(normalized_file_path)
+        self._input.find().send_keys(FilePathFormatting.system_safe_file_path(file_path))
